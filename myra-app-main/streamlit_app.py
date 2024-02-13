@@ -200,8 +200,8 @@ def main_page(submitted: bool, width: int, height: int, num_outputs: int,
         M1 = image_select(
             label="White cream colour full sleeves tshirt on blue jeans",
             images=[
-                "images/M1/input.png", "images/M1/1.png",
-                "images/M1/2.png", "images/M1/3.png", "images/M1/4.png", "images/M1/5.png"
+                "myra-app-main/images/M1/input.png", "myra-app-main/images/M1/1.png",
+                "myra-app-main/images/M1/2.png", "myra-app-main/images/M1/3.png", "myra-app-main/images/M1/4.png", "myra-app-main/images/M1/5.png"
 
             ],
             captions=["A farmer tilling a farm with a tractor during sunset, cinematic, dramatic",
@@ -236,8 +236,8 @@ def main_page(submitted: bool, width: int, height: int, num_outputs: int,
         M6 = image_select(
             label="Red collar tshirt on blue jeans",
             images=[
-                "images/M6/input.png", "images/M6/1.png",
-                "images/M6/2.png", "images/M6/3.png", "images/M6/4.png", "images/M6/5.png"
+                "myra-app-main/images/M6/input.png", "myra-app-main/images/M6/1.png",
+                "myra-app-main/images/M6/2.png", "myra-app-main/images/M6/3.png", "myra-app-main/images/M6/4.png", "myra-app-main/images/M6/5.png"
 
             ],
             captions=["A farmer tilling a farm with a tractor during sunset, cinematic, dramatic",
@@ -273,8 +273,8 @@ def main_page(submitted: bool, width: int, height: int, num_outputs: int,
         M7 = image_select(
             label="White half sleeves tshirt on blue jeans ",
             images=[
-                "images/M7/input.png", "images/M7/1.png",
-                "images/M7/2.png", "images/M7/3.png", "images/M7/4.png",
+                "myra-app-main/images/M7/input.png", "myra-app-main/images/M7/1.png",
+                "myra-app-main/images/M7/2.png", "myra-app-main/images/M7/3.png", "myra-app-main/images/M7/4.png",
 
             ],
             captions=["A farmer tilling a farm with a tractor during sunset, cinematic, dramatic",
@@ -307,8 +307,8 @@ def main_page(submitted: bool, width: int, height: int, num_outputs: int,
         M5 = image_select(
             label="blue jeans ",
             images=[
-                "images/M5/input.png", "images/M5/1.jpg",
-                "images/M5/2.png", "images/M5/3.jpg", "images/M5/5.png",
+                "myra-app-main/images/M5/input.png", "myra-app-main/images/M5/1.jpg",
+                "myra-app-main/images/M5/2.png", "myra-app-main/images/M5/3.jpg", "myra-app-main/images/M5/5.png",
 
             ],
             captions=["A farmer tilling a farm with a tractor during sunset, cinematic, dramatic",
@@ -341,8 +341,8 @@ def main_page(submitted: bool, width: int, height: int, num_outputs: int,
         gen_img = image_select(
             label="General High Quality Images obtained from Parent AI Model Before we finetuned it ",
             images=[
-                "myra-app-main/gallery/farmer_sunset.png", "gallery/astro_on_unicorn.png",
-                "gallery/friends.png","gallery/wizard.png","gallery/puppy.png","gallery/cheetah.png", "gallery/viking.png"
+                "myra-app-main/gallery/farmer_sunset.png", "myra-app-main/gallery/astro_on_unicorn.png",
+                "myra-app-main/gallery/friends.png","myra-app-main/gallery/wizard.png","myra-app-main/gallery/puppy.png","myra-app-main/gallery/cheetah.png", "myra-app-main/gallery/viking.png"
             ],
             captions=["A farmer tilling a farm with a tractor during sunset, cinematic, dramatic",
                       "An astronaut riding a rainbow unicorn, cinematic, dramatic",
