@@ -1,0 +1,8 @@
+captions = ["A farmer tilling a farm with a tractor during sunset, cinematic, dramatic",
+            "An astronaut riding a rainbow unicorn, cinematic, dramatic",
+            "A group of friends laughing and dancing at a music festival, joyful atmosphere, 35mm film photography",
+            "A wizard casting a spell, intense magical energy glowing from his hands, extremely detailed fantasy illustration",
+            "A cute puppy playing in a field of flowers, shallow depth of field, Canon photography",
+            "A cheetah mother nurses her cubs in the tall grass of the Serengeti. The early morning sun beams down through the grass. National Geographic photography by Frans Lanting",
+            "A close-up portrait of a bearded viking warrior in a horned helmet. He stares intensely into the distance while holding a battle axe. Dramatic mood lighting, digital oil painting",
+            ],
