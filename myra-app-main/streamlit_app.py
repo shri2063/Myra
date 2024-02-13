@@ -216,7 +216,7 @@ def main_page(submitted: bool, width: int, height: int, num_outputs: int,
 
         if M1 != "images/M1/input.png":
             # Load the images
-            image1 = Image.open("images/M1/input.png")
+            image1 = Image.open("myra-app-main/images/M1/input.png")
             image2 = Image.open(M1)
 
             # Create two columns for displaying images side by side
@@ -251,7 +251,7 @@ def main_page(submitted: bool, width: int, height: int, num_outputs: int,
         )
         if M6 != "images/M6/input.png":
             # Load the images
-            image1 = Image.open("images/M6/input.png")
+            image1 = Image.open("myra-app-main/images/M6/input.png")
             image2 = Image.open(M6)
 
             # Create two columns for displaying images side by side
@@ -287,7 +287,7 @@ def main_page(submitted: bool, width: int, height: int, num_outputs: int,
         )
         if M7 != "images/M7/input.png":
             # Load the images
-            image1 = Image.open("images/M7/input.png")
+            image1 = Image.open("myra-app-main/images/M7/input.png")
             image2 = Image.open(M7)
 
             # Create two columns for displaying images side by side
@@ -321,7 +321,7 @@ def main_page(submitted: bool, width: int, height: int, num_outputs: int,
         )
         if M5 != "images/M5/input.png":
             # Load the images
-            image1 = Image.open("images/M5/input.png")
+            image1 = Image.open("myra-app-main/images/M5/input.png")
             image2 = Image.open(M5)
 
             # Create two columns for displaying images side by side
