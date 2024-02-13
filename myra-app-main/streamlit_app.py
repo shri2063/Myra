@@ -341,7 +341,7 @@ def main_page(submitted: bool, width: int, height: int, num_outputs: int,
         gen_img = image_select(
             label="General High Quality Images obtained from Parent AI Model Before we finetuned it ",
             images=[
-                "gallery/farmer_sunset.png", "gallery/astro_on_unicorn.png",
+                "myra-app-main/gallery/farmer_sunset.png", "gallery/astro_on_unicorn.png",
                 "gallery/friends.png","gallery/wizard.png","gallery/puppy.png","gallery/cheetah.png", "gallery/viking.png"
             ],
             captions=["A farmer tilling a farm with a tractor during sunset, cinematic, dramatic",
