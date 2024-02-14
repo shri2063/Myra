@@ -201,7 +201,7 @@ def main_page(submitted: bool, width: int, height: int, num_outputs: int,
             label="White cream colour full sleeves tshirt on blue jeans",
             images=[
                 "myra-app-main/images/M1/input.png", "myra-app-main/images/M1/1.png",
-                "myra-app-main/images/M1/2.png", "myra-app-main/images/M1/3.png", "myra-app-main/images/M1/4.png", "myra-app-main/images/M1/5.png"
+                "myra-app-main/images/M1/2.png", "myra-app-main/images/M1/3.png", "myra-app-main/images/M1/2.png", "myra-app-main/images/M1/5.png"
 
             ],
             captions=["A farmer tilling a farm with a tractor during sunset, cinematic, dramatic",
@@ -236,8 +236,8 @@ def main_page(submitted: bool, width: int, height: int, num_outputs: int,
         M6 = image_select(
             label="Red collar tshirt on blue jeans",
             images=[
-                "myra-app-main/images/M6/input.png", "myra-app-main/images/M6/1.png",
-                "myra-app-main/images/M6/2.png", "myra-app-main/images/M6/3.png", "myra-app-main/images/M6/4.png", "myra-app-main/images/M6/5.png"
+                "myra-app-main/images/M6/input.png", "myra-app-main/images/M6/1-2.png",
+                "myra-app-main/images/M6/2.png", "myra-app-main/images/M6/3.png", "myra-app-main/images/M6/2.png", "myra-app-main/images/M6/5.png"
 
             ],
             captions=["A farmer tilling a farm with a tractor during sunset, cinematic, dramatic",
@@ -274,7 +274,7 @@ def main_page(submitted: bool, width: int, height: int, num_outputs: int,
             label="White half sleeves tshirt on blue jeans ",
             images=[
                 "myra-app-main/images/M7/input.png", "myra-app-main/images/M7/1.png",
-                "myra-app-main/images/M7/2.png", "myra-app-main/images/M7/3.png", "myra-app-main/images/M7/4.png",
+                "myra-app-main/images/M7/2.png", "myra-app-main/images/M7/3.png", "myra-app-main/images/M7/2.png",
 
             ],
             captions=["A farmer tilling a farm with a tractor during sunset, cinematic, dramatic",
