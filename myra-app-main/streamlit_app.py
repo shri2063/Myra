@@ -237,7 +237,7 @@ def main_page(submitted: bool, width: int, height: int, num_outputs: int,
             label="Red collar tshirt on blue jeans",
             images=[
                 "myra-app-main/images/M6/input.png", "myra-app-main/images/M6/1-4.png",
-                "myra-app-main/images/M6/2.png", "myra-app-main/images/M6/3-4.png", "myra-app-main/images/M6/4-2.png", "myra-app-main/images/M6/5-2.png"
+                "myra-app-main/images/M6/2.png", "myra-app-main/images/M6/3-5.png", "myra-app-main/images/M6/4-3.png", "myra-app-main/images/M6/5-2.png"
 
             ],
             captions=["A farmer tilling a farm with a tractor during sunset, cinematic, dramatic",
