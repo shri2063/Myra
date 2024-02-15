@@ -187,12 +187,15 @@ def main_page(submitted: bool, width: int, height: int, num_outputs: int,
 
         st.write(
             "<span style='font-family: Roboto, sans-serif;'>At Myra, our vision is to inject a sense of magic and creativity into e-commerce fashion "
-                 "photoshoots by leveraging AI-generated models and props.</span>",
+                 "photoshoots by leveraging AI-generated models. Here's the concept: We begin with an image of a mannequin showcasing the fashion product under ideal "
+            "lighting conditions. This image, along with your prompt detailing the desired attributes of the final model, is fed into our Myra AI system. "
+            "From there, our model swiftly crafts the perfect image tailored to your specifications in no time. </span>",
             unsafe_allow_html=True)
         st.write(
-            "<span style='font-family: Roboto,sans-serif'>The mannequin images below were retrieved from the internet."
-            "For more information on these images, please visit the resource section. Our Finetuned model could "
-            "fit a model within this dress, maintaining the dress outline, tone, and appearance.</span>",
+            "<span style='font-family: Roboto,sans-serif'>We have listed below few examples of results obtained from Myra AI .The mannequin images below were retrieved from the internet from different sites. "
+            "pinterest, shutterstock, istockphoto. "
+            " Myra AI could "
+            "fit AI models within this dress, maintaining the dress outline, tone, and appearance.</span>",
             unsafe_allow_html=True)
 
         st.write("")
@@ -234,21 +237,24 @@ def main_page(submitted: bool, width: int, height: int, num_outputs: int,
         st.write("")
         st.write("")
         M6 = image_select(
-            label="Red collar tshirt on blue jeans",
+            label="RED COLLAR DOTTED TSHIRT ON BLUE JEANS (https://www.shutterstock.com/image-photo/fulllength-male-mannequin-dressed-tshirt-jeans-1067987750)",
             images=[
                 "myra-app-main/images/M6/input.png", "myra-app-main/images/M6/1-4.png",
                 "myra-app-main/images/M6/2.png", "myra-app-main/images/M6/3-5.png", "myra-app-main/images/M6/4-3.png", "myra-app-main/images/M6/5-2.png"
 
             ],
-            captions=["A farmer tilling a farm with a tractor during sunset, cinematic, dramatic",
-                      "An astronaut riding a rainbow unicorn, cinematic, dramatic",
-                      "A group of friends laughing and dancing at a music festival, joyful atmosphere, 35mm film photography",
-                      "A wizard casting a spell, intense magical energy glowing from his hands, extremely detailed fantasy illustration",
-                      "A cute puppy playing in a field of flowers, shallow depth of field, Canon photography",
-                      "A cute puppy playing in a field of flowers, shallow depth of field, Canon photography",
+            captions=["Input image of Mannequin with tshirt obtained from shutterstock website",
+                      "Attractive Young Man, His Eyes Reflecting Clarity and Confidence, Transformed into Cinematic Splendor ",
+                      "An artistic model, more idealistic and perfectionist, AI magic, Enshrined in the Timeless Beauty ",
+                      "A real looking smiling model, natural model photoshoots, Radiating Youthful Energy and Charm, 8k",
+                      "Dynamic and Attractive Male Model, His Bold Expressions and Charismatic Presence Transcending the Screen,",
+                      "Smart and Handsome Male Model, Bold beard, picture perfect, His Eyes Sparkling with Clarity and Intelligence",
                       ],
             use_container_width=False
         )
+        st.write(
+            "<span style='font-family: Roboto,sans-serif'>PLEASE CLICK ON ANY ABOVE IMAGE FOR A CLOSER LOOK.</span>",
+            unsafe_allow_html=True)
         if M6 != "images/M6/input.png":
             # Load the images
             image1 = Image.open("myra-app-main/images/M6/input.png")
@@ -271,20 +277,23 @@ def main_page(submitted: bool, width: int, height: int, num_outputs: int,
         st.write("")
         st.write("")
         M7 = image_select(
-            label="White half sleeves tshirt on blue jeans ",
+            label="White half sleeves tshirt on blue jeans (https://www.istockphoto.com/photo/full-length-male-mannequin-gm1289535860-385180516)",
             images=[
                 "myra-app-main/images/M7/input.png", "myra-app-main/images/M7/1-2.png",
                 "myra-app-main/images/M7/2-2.png", "myra-app-main/images/M7/3-2.png", "myra-app-main/images/M7/4-3.png",
 
             ],
-            captions=["A farmer tilling a farm with a tractor during sunset, cinematic, dramatic",
-                      "An astronaut riding a rainbow unicorn, cinematic, dramatic",
-                      "A group of friends laughing and dancing at a music festival, joyful atmosphere, 35mm film photography",
-                      "A wizard casting a spell, intense magical energy glowing from his hands, extremely detailed fantasy illustration",
-                      "A cute puppy playing in a field of flowers, shallow depth of field, Canon photography",
+            captions=["Input image of Mannequin with tshirt obtained from istockphoto  website",
+                      "Bring Life to the Lens, real looking, natural features,Striking Portrait of a Dynamic and Attractive Male Mode",
+                      "Artistic model, AI perfect complexion and features, masterpiece,  his Eyes Sparkling with Clarity and Intelligence",
+                      "Handsome bearded model, Craft an Iconic Image,Cinematic Touch of Canon Photography, Bold Expressions ",
+                      "A real looking smiling model, natural model photoshoot, Aura Radiating Youthful Energy and Charm"
                       ],
             use_container_width=False
         )
+        st.write(
+            "<span style='font-family: Roboto,sans-serif'>PLEASE CLICK ON ANY ABOVE IMAGE FOR A CLOSER LOOK.</span>",
+            unsafe_allow_html=True)
         if M7 != "images/M7/input.png":
             # Load the images
             image1 = Image.open("myra-app-main/images/M7/input.png")
@@ -304,58 +313,7 @@ def main_page(submitted: bool, width: int, height: int, num_outputs: int,
         st.write("")
         st.write("")
 
-        M5 = image_select(
-            label="blue jeans ",
-            images=[
-                "myra-app-main/images/M5/input.png", "myra-app-main/images/M5/1.jpg",
-                "myra-app-main/images/M5/2.png", "myra-app-main/images/M5/3.jpg", "myra-app-main/images/M5/5.png",
 
-            ],
-            captions=["A farmer tilling a farm with a tractor during sunset, cinematic, dramatic",
-                      "An astronaut riding a rainbow unicorn, cinematic, dramatic",
-                      "A group of friends laughing and dancing at a music festival, joyful atmosphere, 35mm film photography",
-                      "A wizard casting a spell, intense magical energy glowing from his hands, extremely detailed fantasy illustration",
-                      "A cute puppy playing in a field of flowers, shallow depth of field, Canon photography",
-                      ],
-            use_container_width=False
-        )
-        if M5 != "images/M5/input.png":
-            # Load the images
-            image1 = Image.open("myra-app-main/images/M5/input.png")
-            image2 = Image.open(M5)
-
-            # Create two columns for displaying images side by side
-            col1, col2 = st.columns(2)
-
-            # Display the images in the columns
-            with col1:
-                st.image(image1, caption='Input Image', use_column_width=True)
-
-            with col2:
-                st.image(image2, caption='Output Image', use_column_width=True)
-
-        st.write("")
-        st.write("")
-        st.write("")
-
-        gen_img = image_select(
-            label="General High Quality Images obtained from Parent AI Model Before we finetuned it ",
-            images=[
-                "myra-app-main/gallery/farmer_sunset.png", "myra-app-main/gallery/astro_on_unicorn.png",
-                "myra-app-main/gallery/friends.png","myra-app-main/gallery/wizard.png","myra-app-main/gallery/puppy.png","myra-app-main/gallery/cheetah.png", "myra-app-main/gallery/viking.png"
-            ],
-            captions=["A farmer tilling a farm with a tractor during sunset, cinematic, dramatic",
-                      "An astronaut riding a rainbow unicorn, cinematic, dramatic",
-                      "A group of friends laughing and dancing at a music festival, joyful atmosphere, 35mm film photography",
-                      "A wizard casting a spell, intense magical energy glowing from his hands, extremely detailed fantasy illustration",
-                      "A cute puppy playing in a field of flowers, shallow depth of field, Canon photography",
-                      "A cheetah mother nurses her cubs in the tall grass of the Serengeti. The early morning sun beams down through the grass. National Geographic photography by Frans Lanting",
-                      "A close-up portrait of a bearded viking warrior in a horned helmet. He stares intensely into the distance while holding a battle axe. Dramatic mood lighting, digital oil painting",
-                      ],
-            use_container_width=False
-        )
-        if gen_img:
-            st.image(Image.open(gen_img))
 
 
 def main():
