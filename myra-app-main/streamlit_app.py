@@ -195,25 +195,25 @@ def main_page(submitted: bool, width: int, height: int, num_outputs: int,
             "fit a model within this dress, maintaining the dress outline, tone, and appearance.</span>",
             unsafe_allow_html=True)
 
-        st.write("<span style='font-family: Roboto,sans-serif'>PLEASE CLICK ON ANY IMAGE FOR A CLOSER LOOK.</span>",
-            unsafe_allow_html=True)
+        st.write("")
         M1 = image_select(
-            label="White cream colour full sleeves tshirt on blue jeans",
+            label="WHITE CREAM COLOUR FULL TSHIRT ON BLUE JEANS (https://www.pinterest.com/pin/30891947430775019)",
             images=[
                 "myra-app-main/images/M1/input.png", "myra-app-main/images/M1/1-3.png",
                 "myra-app-main/images/M1/2-2.png", "myra-app-main/images/M1/3-5.png", "myra-app-main/images/M1/4-3.png", "myra-app-main/images/M1/5-3.png"
 
             ],
-            captions=["A farmer tilling a farm with a tractor during sunset, cinematic, dramatic",
-                      "An astronaut riding a rainbow unicorn, cinematic, dramatic",
-                      "A group of friends laughing and dancing at a music festival, joyful atmosphere, 35mm film photography",
-                      "A wizard casting a spell, intense magical energy glowing from his hands, extremely detailed fantasy illustration",
-                      "A cute puppy playing in a field of flowers, shallow depth of field, Canon photography",
-                      "A cute puppy playing in a field of flowers, shallow depth of field, Canon photography",
+            captions=["Input Image to Myra AI fetched  from pinterest website",
+                      "Charismatic Young Man, Radiating Confidence and Charm, Captured in Stunning 8K Resolution.",
+                      "Smart, Handsome Male Model,Bold Beard, His Eyes Piercing with Clarity, Embracing the Cinematic Aura ",
+                      "Striking Portrait of a Dynamic and Attractive Male Model, Bold Expressions , Canon's 8K Resolution",
+                      "A cute spotless perfect looking model, Unleash the Beauty, Cinematic Touch of Canon Photography",
+                      "Create a Masterpiece: Generate an Image of a Smart and Dynamic Male Model, His Expressions Bold",
                       ],
             use_container_width=False
         )
-
+        st.write("<span style='font-family: Roboto,sans-serif'>PLEASE CLICK ON ANY ABOVE IMAGE FOR A CLOSER LOOK.</span>",
+                 unsafe_allow_html=True)
         if M1 != "images/M1/input.png":
             # Load the images
             image1 = Image.open("myra-app-main/images/M1/input.png")
