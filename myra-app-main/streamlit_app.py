@@ -88,10 +88,7 @@ def configure_sidebar() -> None:
         return submitted, width, height, num_outputs, scheduler, num_inference_steps, guidance_scale, prompt_strength, refine, high_noise_frac, prompt, negative_prompt
 
 
-def main_page(submitted: bool, width: int, height: int, num_outputs: int,
-              scheduler: str, num_inference_steps: int, guidance_scale: float,
-              prompt_strength: float, refine: str, high_noise_frac: float,
-              prompt: str, negative_prompt: str) -> None:
+def main_page() -> None:
     """Main page layout and logic for generating images.
 
     Args:
@@ -108,89 +105,21 @@ def main_page(submitted: bool, width: int, height: int, num_outputs: int,
         prompt (str): Text prompt for the image generation.
         negative_prompt (str): Text prompt for elements to avoid in the image.
     """
-    if submitted:
-        with st.status('👩🏾‍🍳 Whipping up your words into art...', expanded=True) as status:
-            st.write("⚙️ Model initiated")
-            st.write("🙆‍♀️ Stand up and strecth in the meantime")
-            try:
-                # Only call the API if the "Submit" button was pressed
-                if submitted:
-                    # Calling the replicate API to get the image
-                    with generated_images_placeholder.container():
-                        all_images = []  # List to store all generated images
-                        output = replicate.run(
-                            REPLICATE_MODEL_ENDPOINTSTABILITY,
-                            input={
-                                "prompt": prompt,
-                                "width": width,
-                                "height": height,
-                                "num_outputs": num_outputs,
-                                "scheduler": scheduler,
-                                "num_inference_steps": num_inference_steps,
-                                "guidance_scale": guidance_scale,
-                                "prompt_stregth": prompt_strength,
-                                "refine": refine,
-                                "high_noise_frac": high_noise_frac
-                            }
-                        )
-                        if output:
-                            st.toast(
-                                'Your image has been generated!', icon='😍')
-                            # Save generated image to session state
-                            st.session_state.generated_image = output
-
-                            # Displaying the image
-                            for image in st.session_state.generated_image:
-                                with st.container():
-                                    st.image(image, caption="Generated Image 🎈",
-                                             use_column_width=True)
-                                    # Add image to the list
-                                    all_images.append(image)
-
-                                    response = requests.get(image)
-                        # Save all generated images to session state
-                        st.session_state.all_images = all_images
-
-                        # Create a BytesIO object
-                        zip_io = io.BytesIO()
-
-                        # Download option for each image
-                        with zipfile.ZipFile(zip_io, 'w') as zipf:
-                            for i, image in enumerate(st.session_state.all_images):
-                                response = requests.get(image)
-                                if response.status_code == 200:
-                                    image_data = response.content
-                                    # Write each image to the zip file with a name
-                                    zipf.writestr(
-                                        f"output_file_{i+1}.png", image_data)
-                                else:
-                                    st.error(
-                                        f"Failed to fetch image {i+1} from {image}. Error code: {response.status_code}", icon="🚨")
-                        # Create a download button for the zip file
-                        st.download_button(
-                            ":red[**Download All images**]", data=zip_io.getvalue(), file_name="output_files.zip", mime="application/zip", use_container_width=True)
-                status.update(label="✅ images generated!",
-                              state="complete", expanded=False)
-            except Exception as e:
-                print(e)
-                st.error(f'Encountered an error: {e}', icon="🚨")
-
-    # If not submitted, chill here 🍹
-    else:
-        pass
-
-
-
 
     # Gallery display for inspo
     if 1 == 1:
 
         st.write(
             "<span style='font-family: Roboto, sans-serif;'>At Myra, our vision is to inject a sense of magic and creativity into e-commerce fashion "
-                 "photoshoots by leveraging AI-generated models. Here's the concept: We begin with an image of a mannequin showcasing the fashion product under ideal "
-            "lighting conditions. This image, along with your prompt detailing the desired attributes of the final model, is fed into our Myra AI system. "
-            "From there, our model swiftly crafts the perfect image tailored to your specifications in no time. </span>",
+                 "photoshoots by leveraging AI-generated models. </span>",
             unsafe_allow_html=True)
+        st.write (" ")
+
+        st.write("<span style='font-family: Roboto, sans-serif;'> Here's the concept: We begin with an image of a mannequin showcasing the fashion product under ideal "
+            "lighting conditions. This image, along with your prompt detailing the desired attributes of the final model, is fed into our Myra AI system. "
+                 "From there, Myra AI swiftly crafts the perfect image of real looking model tailored to your specifications in no time.</span>",
+            unsafe_allow_html=True)
+
         st.write(
             "<span style='font-family: Roboto,sans-serif'>We have listed below few examples of results obtained from Myra AI .The mannequin images below were retrieved from the internet from different sites. "
             "pinterest, shutterstock, istockphoto. "
@@ -324,10 +253,9 @@ def main():
     It retrieves the user inputs from the sidebar, and passes them to the main page function.
     The main page function then generates images based on these inputs.
     """
-    submitted, width, height, num_outputs, scheduler, num_inference_steps, guidance_scale, prompt_strength, refine, high_noise_frac, prompt, negative_prompt = configure_sidebar()
+    #submitted, width, height, num_outputs, scheduler, num_inference_steps, guidance_scale, prompt_strength, refine, high_noise_frac, prompt, negative_prompt = configure_sidebar()
     try:
-        main_page(submitted, width, height, num_outputs, scheduler, num_inference_steps,
-              guidance_scale, prompt_strength, refine, high_noise_frac, prompt, negative_prompt)
+        main_page()
     except Exception as e:
         1 == 1
 
