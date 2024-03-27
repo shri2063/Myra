@@ -1,13 +1,15 @@
-import replicate
 import streamlit as st
-import requests
-import zipfile
-import io
-from utils import icon
 from streamlit_image_select import image_select
 from PIL import Image
-
-# UI configurations
+import replicate
+import requests
+from io import BytesIO
+import numpy as np
+import base64
+from upload_image import cloudinary_upload
+import os
+# Define the scope for Google Drive API
+SCOPES = ['https://www.googleapis.com/auth/drive']
 st.set_page_config(page_title="Myra",
                    page_icon=":bridge_at_night:",
                    layout="wide")
@@ -26,6 +28,12 @@ replicate_logo = "https://storage.googleapis.com/llama2_release/Screen%20Shot%20
 generated_images_placeholder = st.empty()
 gallery_placeholder = st.empty()
 
+if os.path.exists('myra-app-main/out_image.jpg'):
+    os.remove('myra-app-main/out_image.jpg')
+if os.path.exists('myra-app-main/out_mask.jpg'):
+    os.remove('myra-app-main/out_mask.jpg')
+if os.path.exists('myra-app-main/pg_output.png'):
+    os.remove('myra-app-main/pg_output.png')
 
 def configure_sidebar() -> None:
     """
@@ -108,6 +116,77 @@ def main_page() -> None:
 
     # Gallery display for inspo
     if 1 == 1:
+
+        f1 = st.file_uploader("Please choose Warped Output Image")
+        f2 = st.file_uploader("Please choose Warped mask image ")
+        f3 = st.file_uploader("Please choose Segmentation Image")
+        show_file = st.empty()
+        if not f1:
+            show_file.info("Please upload an image")
+
+        if isinstance(f1, BytesIO):
+
+            image = Image.open(f1)
+            image.save('myra-app-main/out_image.jpg')
+
+        if not f2:
+            show_file.info("Please upload an image")
+
+        if isinstance(f2, BytesIO):
+
+            image = Image.open(f2)
+            image.save('myra-app-main/out_mask.jpg')
+
+        if not f3:
+            show_file.info("Please upload an image")
+
+        if isinstance(f3, BytesIO):
+
+            image = Image.open(f3)
+            image.save('myra-app-main/pg_output.png')
+
+
+
+
+        # Create two columns for displaying images side by side
+        col1, col2, col3 = st.columns(3)
+
+        # Display the images in the columns
+        with col1:
+            if (os.path.exists('myra-app-main/out_image.jpg')):
+                st.image('myra-app-main/out_image.jpg', caption='Output Image', use_column_width=True)
+                out_image = cloudinary_upload.uploadImage('myra-app-main/out_image.jpg', 'out_image')
+
+
+
+        with col2:
+            if (os.path.exists('myra-app-main/out_mask.jpg')):
+                st.image('myra-app-main/out_mask.jpg', caption='Mask Image', use_column_width=True)
+                out_mask = cloudinary_upload.uploadImage('myra-app-main/out_mask.jpg', 'out_mask')
+
+
+        with col3:
+            if (os.path.exists('myra-app-main/pg_output.png')):
+                st.image('myra-app-main/pg_output.png', caption='PG Output Image', use_column_width=True)
+                pg_output = cloudinary_upload.uploadImage('myra-app-main/pg_output.png', 'pg_output')
+
+
+
+        output = replicate.run(
+            "shrikantbhole/diffusion:de6b9511fa9e4e22c8ae85e090ba5f1343e73e0ff581fdb19481dd1e12837ba0",
+            input={
+                "out_mask_file": out_mask,
+                "out_image_file": out_image,
+                "pg_output_file": pg_output,
+                "out_image_file_2": "https://replicate.delivery/pbxt/KdXQXAymtIImLDUjy8JPaMcrUuMoSAZJukGlA46JFW0RFHgp/_0_207.jpeg"
+            }
+        )
+
+
+        print(output)
+        response = requests.get(output)
+        final_image = np.array(Image.open(BytesIO(response.content)))
+        st.image(final_image, caption = 'final Image', use_column_width=True)
 
         st.write(
             "<span style='font-family: Roboto, sans-serif;'>At Myra, our vision is to inject a sense of magic and creativity into e-commerce fashion "
