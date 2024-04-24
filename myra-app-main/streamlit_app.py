@@ -1,13 +1,22 @@
 import streamlit as st
 from streamlit_image_select import image_select
-from PIL import Image
+from PIL import Image, ImageDraw, ImageFont
 import replicate
 import requests
 from io import BytesIO
-import numpy as np
-import base64
-from upload_image import cloudinary_upload
+from upload_images import cloudinary_upload
 import os
+import torch
+from predict import predict_pos_keypoints as kg
+from predict import predict_parse_seg_image as pg
+import numpy as np
+import json
+
+from torchvision import transforms
+from streamlit_image_coordinates import streamlit_image_coordinates
+
+from datasets.dataset_tps import  get_s_pos
+
 # Define the scope for Google Drive API
 SCOPES = ['https://www.googleapis.com/auth/drive']
 st.set_page_config(page_title="Myra",
@@ -28,12 +37,19 @@ replicate_logo = "https://storage.googleapis.com/llama2_release/Screen%20Shot%20
 generated_images_placeholder = st.empty()
 gallery_placeholder = st.empty()
 
+## Uploaded image location
+TSHIRT_IMAGE_ADDRESS = "myra-app-main/upload_images/tshirt.jpg"
+MODEL_IMAGE_ADDRESS = "myra-app-main/upload_images/image.jpg"
+
+
+
 if os.path.exists('myra-app-main/out_image.jpg'):
     os.remove('myra-app-main/out_image.jpg')
 if os.path.exists('myra-app-main/out_mask.jpg'):
     os.remove('myra-app-main/out_mask.jpg')
 if os.path.exists('myra-app-main/pg_output.png'):
     os.remove('myra-app-main/pg_output.png')
+
 
 def configure_sidebar() -> None:
     """
@@ -44,8 +60,10 @@ def configure_sidebar() -> None:
     """
     with st.sidebar:
         with st.form("my_form"):
-            st.info("**Yo fam! Start here ↓**", icon="👋🏾")
+            st.info("**Attention! Look here for warning ↑**", icon="👋🏾")
+
             with st.expander(":rainbow[**Refine your output here**]"):
+                '''
                 # Advanced Settings (for the curious minds!)
                 width = st.number_input("Width of output image", value=1024)
                 height = st.number_input("Height of output image", value=1024)
@@ -58,11 +76,13 @@ def configure_sidebar() -> None:
                 guidance_scale = st.slider(
                     "Scale for classifier-free guidance", value=7.5, min_value=1.0, max_value=50.0, step=0.1)
                 prompt_strength = st.slider(
-                    "Prompt strength when using img2img/inpaint(1.0 corresponds to full destruction of infomation in image)", value=0.8, max_value=1.0, step=0.1)
+                    "Prompt strength when using img2img/inpaint(1.0 corresponds to full destruction of infomation in image)",
+                    value=0.8, max_value=1.0, step=0.1)
                 refine = st.selectbox(
                     "Select refine style to use (left out the other 2)", ("expert_ensemble_refiner", "None"))
                 high_noise_frac = st.slider(
                     "Fraction of noise to use for `expert_ensemble_refiner`", value=0.8, max_value=1.0, step=0.1)
+                
             prompt = st.text_area(
                 ":orange[**Enter prompt: start typing, Shakespeare ✍🏾**]",
                 value="An astronaut riding a rainbow unicorn, cinematic, dramatic")
@@ -70,9 +90,11 @@ def configure_sidebar() -> None:
                                            value="the absolute worst quality, distorted features",
                                            help="This is a negative prompt, basically type what you don't want to see in the generated image")
 
+            '''
             # The Big Red "Submit" Button!
             submitted = st.form_submit_button(
                 "Submit", type="primary", use_container_width=True)
+            show_popup = st.sidebar.button("Show Pop-up")
 
         # Credits and resources
         st.divider()
@@ -81,6 +103,7 @@ def configure_sidebar() -> None:
             f"<img src='{replicate_logo}' style='height: 1em'> [{replicate_text}]({replicate_link})",
             unsafe_allow_html=True
         )
+
         st.markdown(
             """
             ---
@@ -93,85 +116,348 @@ def configure_sidebar() -> None:
             """
         )
 
-        return submitted, width, height, num_outputs, scheduler, num_inference_steps, guidance_scale, prompt_strength, refine, high_noise_frac, prompt, negative_prompt
+        # return submitted, width, height, num_outputs, scheduler, num_inference_steps, guidance_scale, prompt_strength, refine, high_noise_frac, prompt, negative_prompt
+        return;
+
+
+### Session State variables
+if 'cover_area_pointer_list_tshirt' not in st.session_state:
+    st.session_state.cover_area_pointer_list_tshirt = []
+if 'cover_area_label_list_tshirt' not in st.session_state:
+    st.session_state.cover_area_label_list_tshirt = []
+if 'cover_area_pointer_list_model' not in st.session_state:
+    st.session_state.cover_area_pointer_list_model = []
+if 'cover_area_label_list_model' not in st.session_state:
+    st.session_state.cover_area_label_list_model = []
+if 'key_points_tshirt' not in st.session_state:
+    st.session_state.key_points_tshirt = None
+if 'key_points_model' not in st.session_state:
+    st.session_state.key_points_model = None
+if 'point_selected' not in st.session_state:
+    st.session_state.point_selected = {"x": 0, "y": 0}
+
+
+
+# We will be overwriting on tshirt image highlighting keypoints circles with their  labels
+# We need to store in session history cover area boundaries of all key points circles and labels, since when keypoint in modified original img crop could be  brought back
+def write_cover_areas_for_pointer_and_labels(arr: np.ndarray, image: Image, cover_area_pointer_list: list,
+                                             cover_area_label_list: list):
+
+    point_size = 5
+    label_text = 'Point'
+
+    draw = ImageDraw.Draw(image)
+    font_size = 16
+    font = ImageFont.truetype("arial.ttf", font_size)
+
+    text_width, text_height = 5,5
+
+
+
+    # Define the font size and font
+    for id, point in enumerate(arr):
+        cover_area_pointer = (int(point[0]) - int(point_size), int(point[1]) - int(point_size),
+                              int(point[0]) + int(point_size) + 5, int(point[1]) + int(point_size) + 5)
+        cover_area_pointer_list.append(cover_area_pointer)
+
+        cover_area_label = (int(point[0] + point_size + 5), int(point[1] - text_height // 2),
+                            int(point[0]) + int(point_size) + 5 + int(text_width),
+                            int(point[1]) - text_height // 2 + int(text_height))
+
+        cover_area_label_list.append(cover_area_label)
+
+
+def write_points_and_labels_over_image(arr: np.ndarray, image: Image) -> Image:
+    point_size = 5
+    label_text = 'Point'
+    draw = ImageDraw.Draw(image)
+    font_size = 16
+    font = ImageFont.truetype("arial.ttf", font_size)
+    text_width, text_height = 5,5
+    point_color = 'green'
+
+    for id, point in enumerate(arr):
+        draw.ellipse(
+            (point[0] - point_size, point[1] - point_size, point[0] + point_size, point[1] + point_size),
+            fill=point_color)
+        text_x = point[0] + point_size + 5  # Adjust for spacing
+        text_y = point[1] - text_height // 2
+        draw.text((text_x, text_y), str(id), fill='green', font=font)
+    return image
+
+
+def update_point_over_image(edited_image: Image, node: str, value: dict, kp_arr: np.ndarray,
+                            cover_area_pointer_list: list, cover_area_label_list: list):
+    point_size = 5
+    label_text = 'Point'
+    draw = ImageDraw.Draw(edited_image)
+    font_size = 16
+    font = ImageFont.truetype("arial.ttf", font_size)
+    text_width, text_height = 5,5
+
+    node = int(node)
+
+    kp_arr[node][0] = value["x"]
+    kp_arr[node][1] = value["y"]
+
+    original_image = Image.open(TSHIRT_IMAGE_ADDRESS)
+    image_crop = original_image.crop(cover_area_label_list[node])
+    edited_image.paste(image_crop, cover_area_label_list[node])
+    image_crop = original_image.crop(cover_area_pointer_list[node])
+    edited_image.paste(image_crop, cover_area_pointer_list[node])
+    draw.ellipse((kp_arr[node][0] - point_size,
+                  kp_arr[node][1] - point_size,
+                  kp_arr[node][0] + point_size,
+                  kp_arr[node][1] + point_size),
+                 fill='red')
+    cover_area_pointer = (int(kp_arr[node][0]) - int(point_size),
+                          int(kp_arr[node][1]) - int(point_size),
+                          int(kp_arr[node][0]) + int(point_size) + 5,
+                          int(kp_arr[node][1]) + int(point_size) + 5)
+    cover_area_pointer_list[node] = cover_area_pointer
+    text_x = kp_arr[node][0] + point_size + 5  # Adjust for spacing
+    text_y = kp_arr[node][1] - text_height // 2
+    cover_area_label = (int(kp_arr[node][0] + point_size + 5),
+                        int(kp_arr[node][1] - text_height // 2),
+                        int(kp_arr[node][0]) + int(point_size) + 5 + int(
+                            text_width),
+                        int(kp_arr[node][1]) - text_height // 2 + int(
+                            text_height))
+    cover_area_label_list[node] = cover_area_label
+    draw.text((text_x, text_y), str(node), fill='red', font=font)
 
 
 def main_page() -> None:
-    """Main page layout and logic for generating images.
+    """Main page layout and logic for generating images."""
 
-    Args:
-        submitted (bool): Flag indicating whether the form has been submitted.
-        width (int): Width of the output image.
-        height (int): Height of the output image.
-        num_outputs (int): Number of images to output.
-        scheduler (str): Scheduler type for the model.
-        num_inference_steps (int): Number of denoising steps.
-        guidance_scale (float): Scale for classifier-free guidance.
-        prompt_strength (float): Prompt strength when using img2img/inpaint.
-        refine (str): Refine style to use.
-        high_noise_frac (float): Fraction of noise to use for `expert_ensemble_refiner`.
-        prompt (str): Text prompt for the image generation.
-        negative_prompt (str): Text prompt for elements to avoid in the image.
-    """
+    #############PLOT KEYPOINTS OVER TSHIRT#############
+    # SAVE UPLOADED TSHIRT IMAGE AND MODEL IMAGE
+    f1 = st.file_uploader("Please choose tshirt Image")
+    f2 = st.file_uploader("Please choose Model Pos image ")
 
-    # Gallery display for inspo
-    if 1 == 1:
+    show_file = st.empty()
+    if not f1:
+        show_file.info("Please upload an image")
 
-        f1 = st.file_uploader("Please choose Warped Output Image")
-        f2 = st.file_uploader("Please choose Warped mask image ")
-        f3 = st.file_uploader("Please choose Segmentation Image")
-        show_file = st.empty()
-        if not f1:
-            show_file.info("Please upload an image")
+    if isinstance(f1, BytesIO):
+        image = Image.open(f1)
+        image.save('myra-app-main/upload_images/tshirt.jpg')
 
-        if isinstance(f1, BytesIO):
+    if not f2:
+        show_file.info("Please upload an image")
 
-            image = Image.open(f1)
-            image.save('myra-app-main/out_image.jpg')
+    if isinstance(f2, BytesIO):
+        image = Image.open(f2)
+        image.save('myra-app-main/upload_images/image.jpg')
 
-        if not f2:
-            show_file.info("Please upload an image")
+    # Create two columns to show cloth and model Image
+    col1, col2 = st.columns(2)
 
-        if isinstance(f2, BytesIO):
+    # Display the images in the column along with keypoints
 
-            image = Image.open(f2)
-            image.save('myra-app-main/out_mask.jpg')
+    with col1:
+        # Create an input text box to select a keypoint whose position needs to be changed
 
-        if not f3:
-            show_file.info("Please upload an image")
-
-        if isinstance(f3, BytesIO):
-
-            image = Image.open(f3)
-            image.save('myra-app-main/pg_output.png')
+        node = st.text_input('Enter node position to change')
+        if node:
+            st.write("You are modifying Node " + node + "   Please click on new position")
 
 
+        if os.path.exists(TSHIRT_IMAGE_ADDRESS):
 
 
+            with open('myra-app-main/data/00006_00/cloth_landmark_json.json', 'r') as file:
+
+                json_list = json.load(file)
+                kp_arr = np.array(json_list["long"]) * 250
+                if st.session_state.key_points_tshirt is None:
+                    st.session_state.key_points_tshirt = kp_arr
+
+            image = Image.open(TSHIRT_IMAGE_ADDRESS)
+
+            if not st.session_state.cover_area_pointer_list_tshirt:
+
+                write_cover_areas_for_pointer_and_labels(kp_arr, image, st.session_state.cover_area_pointer_list_tshirt,
+                                                         st.session_state.cover_area_label_list_tshirt)
+
+            write_points_and_labels_over_image(kp_arr, image)
+
+            ## Streamlit Image coordinate is a spl library in streamlit that captures point coordinates
+            ## of a pixel clicked by mouse over the image
+            value = streamlit_image_coordinates(
+                image,
+                key="pil",
+            )
+
+            if value and (value["x"] != st.session_state.point_selected["x"] and value["y"] !=
+                          st.session_state.point_selected["y"]):
+
+                st.session_state.point_selected = value
+                if node:
+
+                    update_point_over_image(image, node, value, st.session_state.key_points_tshirt,
+                                            st.session_state.cover_area_pointer_list_tshirt,
+                                            st.session_state.cover_area_label_list_tshirt)
+
+
+                else:
+                    st.sidebar.write("Please select a node first")
+
+                # out_image = cloudinary_upload.uploadImage('myra-app-main/upload_images/tshirt.jpg', 'tshirt')
+
+    with col2:
+        image = Image.open(TSHIRT_IMAGE_ADDRESS)
+        write_points_and_labels_over_image(st.session_state.key_points_tshirt, image)
+        st.image(image, use_column_width=True)
+
+        ###################KEYPOINT DETECTOR#########################
+    # Create two columns to show cloth and model Image
+    col1, col2 = st.columns(2)
+
+    # Display the images in the columns
+
+    with col1:
+
+
+        model_image = Image.open(MODEL_IMAGE_ADDRESS)
+        if st.session_state.key_points_model is not None:
+            write_points_and_labels_over_image(st.session_state.key_points_model, model_image)
+
+        # If Key Point Detector Is called
+        key_point_detector = st.button("Run KeyPoint Detector!")
+        if key_point_detector:
+            key_points = st.session_state.key_points_tshirt
+
+            p_pos = kg.get_p_pos(key_points)
+
+            st.session_state.key_points_model = p_pos
+
+            model_image = Image.open(MODEL_IMAGE_ADDRESS)
+            write_points_and_labels_over_image(p_pos, model_image)
+            st.session_state.cover_area_pointer_list_model = []
+            st.session_state.cover_area_label_list_model = []
+            write_cover_areas_for_pointer_and_labels(p_pos, model_image,
+                                                         st.session_state.cover_area_pointer_list_model,
+                                                         st.session_state.cover_area_label_list_model)
+
+        model_node = st.text_input('Enter node position to change', key='model_node')
+        if model_node:
+            st.write("You are modifying Node " + str(model_node) + "   Please click on new position")
+            # Create a button
+
+        model_value = streamlit_image_coordinates(
+            model_image,
+            key="model_value",
+        )
+
+        if model_value and (model_value["x"] != st.session_state.point_selected["x"] and model_value["y"] !=
+                            st.session_state.point_selected["y"]):
+
+            st.write("joo")
+            st.session_state.point_selected = model_value
+            if model_node:
+                update_point_over_image(model_image, model_node, model_value, st.session_state.key_points_model,
+                                        st.session_state.cover_area_pointer_list_model,
+                                        st.session_state.cover_area_label_list_model)
+
+            else:
+                st.sidebar.write("Please select a node first")
+
+    with col2:
+        model_image = Image.open(MODEL_IMAGE_ADDRESS)
+        write_points_and_labels_over_image(st.session_state.key_points_model, model_image)
+        st.image(model_image, use_column_width=True)
+
+
+    ###########PARSE GENERATOR PIPELINE######################
+    # Create two columns to show cloth and model Image
+    col1, col2 = st.columns(2)
+
+    with col1:
+        model_parse_generator = st.button("Run Model Parse Generator!")
+        if model_parse_generator:
+            p_pos = torch.tensor(st.session_state.key_points_model).float()
+            st.write(p_pos.shape)
+            pg_output = pg.parse_seg_image_hot_encoder(get_s_pos(),p_pos)
+
+            unique_colors = torch.randperm(256)[:39]
+            colors = unique_colors.view(13, 3)
+
+            # Convert hot_encoded_tensor to [13, 1024, 768] shape
+            hot_encoded_tensor = pg_output.squeeze(0)
+            # Apply the color palette to the one-hot encoded tensor
+
+            segmentation_image = torch.matmul(hot_encoded_tensor.permute(1, 2, 0), colors.float())
+
+
+            # Convert the resulting tensor to uint8 and clamp values to [0, 255]
+            segmentation_image = segmentation_image.byte().clamp(0, 255)
+            segmentation_image = segmentation_image.to(torch.int32)
+            segmentation_image = segmentation_image.detach().numpy()
+
+            # segmentation_image = np.transpose(segmentation_image, axes = (1,2,0))
+            segmentation_image = segmentation_image.astype(np.uint8)
+            ## COLOR CODED SEGMENTATION IMAGE (using 'red' pixel value as color code)
+            segmentation_image = segmentation_image[:, :,0]
+            st.write("unique", np.unique(segmentation_image))
+            image = Image.fromarray(segmentation_image)
+            st.image(image)
+
+    with col2:
+        print("Hi")
+
+
+    #############DIFFUSION INFERENCE PIPELINE#########################
+
+    f3 = st.file_uploader("Please choose Warped Output Image")
+    f4 = st.file_uploader("Please choose Warped Mask Image")
+    f5 = st.file_uploader("Please choose Segmentation output Image")
+
+    if not f3:
+        show_file.info("Please upload an image")
+
+    if isinstance(f3, BytesIO):
+        image = Image.open(f3)
+        image.save('myra-app-main/upload_images/out_image.png')
+
+    if not f4:
+        show_file.info("Please upload an image")
+
+    if isinstance(f4, BytesIO):
+        image = Image.open(f4)
+        image.save('myra-app-main/upload_images/out_mask.png')
+
+    if not f5:
+        show_file.info("Please upload an image")
+
+    if isinstance(f5, BytesIO):
+        image = Image.open(f5)
+        image.save('myra-app-main/upload_images/pg_output.png')
         # Create two columns for displaying images side by side
         col1, col2, col3 = st.columns(3)
 
-        # Display the images in the columns
-        with col1:
-            if (os.path.exists('myra-app-main/out_image.jpg')):
-                st.image('myra-app-main/out_image.jpg', caption='Output Image', use_column_width=True)
-                out_image = cloudinary_upload.uploadImage('myra-app-main/out_image.jpg', 'out_image')
+    # Display the images in the columns
+    with col1:
+        if (os.path.exists('myra-app-main/upload_images/out_image.jpg')):
+            st.image('myra-app-main/upload_images/out_image.jpg', caption='Output Image', use_column_width=True)
+            out_image = cloudinary_upload.uploadImage('myra-app-main/upload_images/out_image.jpg', 'out_image')
 
+    with col2:
+        if (os.path.exists('myra-app-main/uploaded_images/out_mask.jpg')):
+            st.image('myra-app-main/upload_images/out_mask.jpg', caption='Mask Image', use_column_width=True)
+            out_mask = cloudinary_upload.uploadImage('myra-app-main/upload_images/out_mask.jpg', 'out_mask')
 
+    with col3:
+        if (os.path.exists('myra-app-main/uploaded_images/pg_output.png')):
+            st.image('myra-app-main/upload_images/pg_output.png', caption='PG Output Image', use_column_width=True)
+            pg_output = cloudinary_upload.uploadImage('myra-app-main/upload_images/pg_output.png', 'pg_output')
 
-        with col2:
-            if (os.path.exists('myra-app-main/out_mask.jpg')):
-                st.image('myra-app-main/out_mask.jpg', caption='Mask Image', use_column_width=True)
-                out_mask = cloudinary_upload.uploadImage('myra-app-main/out_mask.jpg', 'out_mask')
+    # Create a button
+    button_clicked = st.button("Run Diffusion!")
 
-
-        with col3:
-            if (os.path.exists('myra-app-main/pg_output.png')):
-                st.image('myra-app-main/pg_output.png', caption='PG Output Image', use_column_width=True)
-                pg_output = cloudinary_upload.uploadImage('myra-app-main/pg_output.png', 'pg_output')
-
-
-
+    # Check if the button is clicked
+    if button_clicked:
+        st.write("Button clicked!")
         output = replicate.run(
             "shrikantbhole/diffusion:de6b9511fa9e4e22c8ae85e090ba5f1343e73e0ff581fdb19481dd1e12837ba0",
             input={
@@ -182,21 +468,21 @@ def main_page() -> None:
             }
         )
 
-
         print(output)
         response = requests.get(output)
         final_image = np.array(Image.open(BytesIO(response.content)))
-        st.image(final_image, caption = 'final Image', use_column_width=True)
+        st.image(final_image, caption='final Image', use_column_width=True)
 
         st.write(
             "<span style='font-family: Roboto, sans-serif;'>At Myra, our vision is to inject a sense of magic and creativity into e-commerce fashion "
-                 "photoshoots by leveraging AI-generated models. </span>",
+            "photoshoots by leveraging AI-generated models. </span>",
             unsafe_allow_html=True)
-        st.write (" ")
+        st.write(" ")
 
-        st.write("<span style='font-family: Roboto, sans-serif;'> Here's the concept: We begin with an image of a mannequin showcasing the fashion product under ideal "
+        st.write(
+            "<span style='font-family: Roboto, sans-serif;'> Here's the concept: We begin with an image of a mannequin showcasing the fashion product under ideal "
             "lighting conditions. This image, along with your prompt detailing the desired attributes of the final model, is fed into our Myra AI system. "
-                 "From there, Myra AI swiftly crafts the perfect image of real looking model tailored to your specifications in no time.</span>",
+            "From there, Myra AI swiftly crafts the perfect image of real looking model tailored to your specifications in no time.</span>",
             unsafe_allow_html=True)
 
         st.write(
@@ -210,8 +496,9 @@ def main_page() -> None:
         M1 = image_select(
             label="WHITE CREAM COLOUR FULL TSHIRT ON BLUE JEANS (https://www.pinterest.com/pin/30891947430775019)",
             images=[
-                "myra-app-main/images/M1/input.png", "myra-app-main/images/M1/1-3.png",
-                "myra-app-main/images/M1/2-2.png", "myra-app-main/images/M1/3-5.png", "myra-app-main/images/M1/4-3.png", "myra-app-main/images/M1/5-3.png"
+                "myra-app-main/images/M1/input.png", "myra-app-main/images/M1/2-2.png",
+                "myra-app-main/images/M1/2-2.png", "myra-app-main/images/M1/3-5.png", "myra-app-main/images/M1/4-3.png",
+                "myra-app-main/images/M1/5-3.png"
 
             ],
             captions=["Input Image to Myra AI fetched  from pinterest website",
@@ -223,8 +510,9 @@ def main_page() -> None:
                       ],
             use_container_width=False
         )
-        st.write("<span style='font-family: Roboto,sans-serif'>PLEASE CLICK ON ANY ABOVE IMAGE FOR A CLOSER LOOK.</span>",
-                 unsafe_allow_html=True)
+        st.write(
+            "<span style='font-family: Roboto,sans-serif'>PLEASE CLICK ON ANY ABOVE IMAGE FOR A CLOSER LOOK.</span>",
+            unsafe_allow_html=True)
         if M1 != "images/M1/input.png":
             # Load the images
             image1 = Image.open("myra-app-main/images/M1/input.png")
@@ -240,7 +528,6 @@ def main_page() -> None:
             with col2:
                 st.image(image2, caption='Output Image', use_column_width=True)
 
-
         st.write("")
         st.write("")
         st.write("")
@@ -248,7 +535,8 @@ def main_page() -> None:
             label="RED COLLAR DOTTED TSHIRT ON BLUE JEANS (https://www.shutterstock.com/image-photo/fulllength-male-mannequin-dressed-tshirt-jeans-1067987750)",
             images=[
                 "myra-app-main/images/M6/input.png", "myra-app-main/images/M6/1-4.png",
-                "myra-app-main/images/M6/2.png", "myra-app-main/images/M6/3-5.png", "myra-app-main/images/M6/4-3.png", "myra-app-main/images/M6/5-2.png"
+                "myra-app-main/images/M6/2.png", "myra-app-main/images/M6/3-5.png", "myra-app-main/images/M6/4-3.png",
+                "myra-app-main/images/M6/5-2.png"
 
             ],
             captions=["Input image of Mannequin with tshirt obtained from shutterstock website",
@@ -277,9 +565,6 @@ def main_page() -> None:
 
             with col2:
                 st.image(image2, caption='Output Image', use_column_width=True)
-
-
-
 
         st.write("")
         st.write("")
@@ -322,8 +607,6 @@ def main_page() -> None:
         st.write("")
 
 
-
-
 def main():
     """
     Main function to run the Streamlit application.
@@ -332,7 +615,7 @@ def main():
     It retrieves the user inputs from the sidebar, and passes them to the main page function.
     The main page function then generates images based on these inputs.
     """
-    #submitted, width, height, num_outputs, scheduler, num_inference_steps, guidance_scale, prompt_strength, refine, high_noise_frac, prompt, negative_prompt = configure_sidebar()
+    # submitted, width, height, num_outputs, scheduler, num_inference_steps, guidance_scale, prompt_strength, refine, high_noise_frac, prompt, negative_prompt = configure_sidebar()
     try:
         main_page()
     except Exception as e:
@@ -341,3 +624,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+    configure_sidebar()

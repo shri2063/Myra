@@ -7,7 +7,7 @@ import torch as th
 import torch.nn as nn
 import torch.nn.functional as F
 import sys
-sys.path.append('utils')
+sys.path.append('myra-app-main/utils')
 from fp16_util import convert_module_to_f16, convert_module_to_f32
 from nn import (
     SiLU,

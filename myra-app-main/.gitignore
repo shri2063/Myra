@@ -121,7 +121,7 @@ celerybeat.pid
 *.sage.py
 
 # Environments
-upload_image/.env
+upload_images/.env
 .venv
 env/
 venv/

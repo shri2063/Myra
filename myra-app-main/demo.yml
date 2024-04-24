@@ -31,7 +31,7 @@ use_ddim: false
 latex_name: VTON
 method_name: VTON
 image_size: 1024
-model_path: checkpoints_pretrained/sci/ckpt_1024/ema_0.9999_300000.pt
+model_path: myra-app-main/checkpoints_pretrained/sci/ckpt_1024/ema_0.9999_300000.pt
 name: demo
 inpa_inj_sched_prev: true
 n_jobs: 1

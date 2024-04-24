@@ -1,25 +1,43 @@
 from __future__ import print_function, absolute_import, division
 
 import numpy as np
+from torch.distributed.checkpoint import load_state_dict
 from torchvision.utils import make_grid
 from torchvision.utils import save_image
 import argparse
 import torch.backends.cudnn as cudnn
-from models.semgcn import GCN_2
-from utils.graph_util import adj_mx_from_edges
+from PIL import Image
 import math
 import pyclipper
-from datasets.dataset_tps import get_result
 import torch
-from models.networks_pg import ParseGenerator
-from utils.utils_pg import *
+import os
+from torchvision import transforms
+import cv2
+
+import sys
 
 
-import utils.conf_base
+
+sys.path.append('myra-app-main/models')
+from semgcn import GCN_2
+from networks_pg import ParseGenerator
+
+sys.path.append('myra-app-main/utils')
+from graph_util import adj_mx_from_edges
+from utils_pg import *
+import conf_base
 from utils import yamlread
-from  utils.dist_util import *
-from PIL import Image
-from utils.script_util import model_and_diffusion_defaults, create_model_and_diffusion, select_args
+from  dist_util import *
+from script_util import model_and_diffusion_defaults, create_model_and_diffusion, select_args
+
+sys.path.append('myra-app-main/datasets')
+from dataset_tps import get_dataset_dict
+
+
+
+
+
+
 
 def draw_skeleton(sk_pos):
     sk_pos[:, 0] = sk_pos[:, 0] * 768
@@ -331,8 +349,8 @@ def parse_args():
     parser.add_argument("--parse_ag_mode", type=str, default='parse_ag_full')
     parser.add_argument('--vis_dir', type=str, default='example/generate_demo/vis/')
     parser.add_argument('--final_results_dir', type=str, default='example/generate_demo/final_results/')
-    parser.add_argument('--kg_checkpoint_dir', type=str, default='checkpoints_pretrained/kg/step_299999.pt')
-    parser.add_argument('--pg_checkpoint_dir', type=str, default='checkpoints_pretrained/pg/step_9999.pt')
+    parser.add_argument('--kg_checkpoint_dir', type=str, default='myra-app-main/checkpoints_pretrained/kg/step_299999.pt')
+    parser.add_argument('--pg_checkpoint_dir', type=str, default='myra-app-main/checkpoints_pretrained/pg/step_9999.pt')
     parser.add_argument('--test_list', type=str, default='demo_unpaired_pairs.txt')
     parser.add_argument('--up', type=bool, default=True)
     # KG Model Arguments
@@ -348,39 +366,30 @@ def parse_args():
     # Test Arguments
     parser.add_argument('--batch_size', type=int, default=1)
     parser.add_argument('--workers', type=int, default=2)
-    parser.add_argument('--conf_path', type=str, required=False, default='demo.yml')
+    parser.add_argument('--conf_path', type=str, required=False, default='myra-app-main/demo.yml')
     args = parser.parse_args([])
     # SCI Arguments
-    args_sci = utils.conf_base.Default_Conf()
+    args_sci = conf_base.Default_Conf()
     args_sci.update(yamlread(args.conf_path))
 
     return args, args_sci
-def get_parse_13():
-    im_parse_pil_big = Image.open('seg_img.jpg') # 768x1024
-    # Shorter side becomes 768 and larger side aligns based upon aspect ratio
-    image_reshaped = np.asarray(im_parse_pil_big)[:,:,0]
-    print('im_parse_pil_big',np.asarray(im_parse_pil_big)[0,0,:])
-    #image_reshaped = np.argmax(image_reshaped, axis = 0)
-    print('im_parse_pil_big',image_reshaped[1,:])
-    print('im_parse_pil_big', image_reshaped[2, :])
-    print('im_parse_pil_big', image_reshaped[3, :])
-    print('im_parse_pil_big', image_reshaped[4, :])
-    print('im_parse_pil_big', image_reshaped[5, :])
-    print('im_parse_pil_big', image_reshaped[6, :])
-    print('im_parse_pil_big',image_reshaped[7,:])
-    print('im_parse_pil_big', np.unique(image_reshaped[1:7,:]))
-    im_parse_pil_big = im_parse_pil_big.astype(np.int32)
-    #img = Image.fromarray(im_parse_pil_big)
-    #img.save("blaa.png")
-    #im_parse_pil = transforms.Resize(768)(im_parse_pil_big)
-    # None adds dimesnion to first index
-    parse = torch.from_numpy(np.array(im_parse_pil_big)[None]).long()
-    print('im_parse_pil_big', np.array(im_parse_pil_big).shape)
+def parse_hot_encoded_vector_from_image(img: Image):
+    ### Note image should be color coded (w,h) with single channel representing the color code.
+    # There has to be 8 unique color codes
+    print('image shape', np.array(img).shape)
+    unique_values = np.unique(img)
+    unique_values.sort()
+    print(("unique values", unique_values))
+    mapping = {label: i for i, label in enumerate(unique_values)}
+    img = np.vectorize(mapping.get)(img)
+    parse = torch.from_numpy(np.array(img)[None]).long()
+    print('parse unique values', np.unique(np.array(img)))
     parse_13 = torch.FloatTensor(13, 1024, 768).zero_()
-    # Basically creates one hot encoding representation where eqach pixel value in the original image is represented as a one-hot vector along the zeroth dimension of parse_13
+    # Basically creates one hot encoding representation where eqach pixel value in the original image is represented
+    # as a one-hot vector along the zeroth dimension of parse_13
     parse_13 = parse_13.scatter_(0, parse, 1.0)
     parse_13 = parse_13[None]
-    print(parse_13.shape)
+    print("parse 13 shape", parse_13.shape)
     return parse_13
 
 def test(args, args_sci):
@@ -492,25 +501,25 @@ def test(args, args_sci):
     if not os.path.exists(args.final_results_dir):
         os.makedirs(args.final_results_dir)
 
-    inputs = get_result();
+    inputs = get_dataset_dict();
     image = inputs['image']
     cloth = inputs['cloth']
     ag_mask = inputs['ag_mask']
     skin_mask = inputs['skin_mask']
-    parse = inputs['parse']
-    parse_ag = inputs['parse_ag']
-    s_pos = inputs['s_pos'].float()
-    c_pos = inputs['c_pos'].float()
+    parse = inputs['parse'] # model segmentation image
+    parse_ag = inputs['parse_ag']  # [1,13,768,1024] hot encoded vector of model segmentation image
+    s_pos = inputs['s_pos'].float()  # model pos keypoints
+    c_pos = inputs['c_pos'].float()  # tshirt keypoints
     v_pos = inputs['v_pos'].float()
 
     save_name = inputs['mix_name']
 
-    p_pos = kg_network(c_pos, s_pos)
+    p_pos = kg_network(c_pos, s_pos) # Output of tshirt keypoints planted on model
     p_pos = p_pos.cpu()
 
-    sk_vis = draw_skeleton(s_pos.detach().clone().cpu())
+    sk_vis = draw_skeleton(s_pos.detach().clone().cpu()) #Model image with keypoints
     print('sk_vis',sk_vis.shape)
-    ck_vis = draw_cloth(p_pos[0].detach().clone().cpu())
+    ck_vis = draw_cloth(p_pos[0].detach().clone().cpu()) #Tshirt image with keypoints
     print('ck_vis', ck_vis.shape)
     vk_vis = draw_cloth(v_pos.detach().clone().cpu())
     print('vk_vis', vk_vis.shape)
@@ -519,34 +528,45 @@ def test(args, args_sci):
     print('sk_input',sk_input.shape)
     ck_input = torch.unsqueeze(norm_transform(ck_vis), dim=0)
     print('ck_input', ck_input.shape)
-    print('parse_ag', parse_ag.shape)
+    print('parse_ag', parse_ag.shape) # [1,13,768,1024] hot encoded vector of model segmentation image
     print('parse ag non zero values', np.count_nonzero(parse_ag))
     pg_input = torch.cat([parse_ag, sk_input, ck_input], 1)
 
-    pg_output = pg_network(pg_input)
-
+    pg_output = pg_network(pg_input) # [1,13,768,1024] hot encoded vector of parse-generated model segmentation image
+    print('pg_output shape', pg_output.shape)
     pg_output = pred_to_onehot(pg_output).cpu()
-    colors = torch.randint(0, 256, size=(13, 3), dtype=torch.uint8)
 
+
+    #####CONVERTING PARSE GEN HOT ENCODED TENSOR TO COLOR CODED SEGMENTATION IMAGE (768,1024)######
+
+
+    # We will generate 39 (13,3) unique random values to color pallete hot encoded tensor
+    # Make Note: we don't need color palleted image in original code , byt since we are using Replicate for inference
+    ## we have to pass parse generated model image as one of the input param to Semantic Conditioned Inpainting model
+    ## In orignal code they directly pass hot encoded vector as input param
+
+    unique_colors = torch.randperm(256)[:39]
+    colors = unique_colors.view(13,3)
+    #colors = torch.randint(0, 256, size=(13, 3), dtype=torch.uint8)
     # Convert hot_encoded_tensor to [13, 1024, 768] shape
     hot_encoded_tensor = pg_output.squeeze(0)
-
     # Apply the color palette to the one-hot encoded tensor
     segmentation_image = torch.matmul(hot_encoded_tensor.permute(1, 2, 0), colors.float())
 
     # Convert the resulting tensor to uint8 and clamp values to [0, 255]
     segmentation_image = segmentation_image.byte().clamp(0, 255)
     segmentation_image = segmentation_image.to(torch.int32)
-    print("Segmantation Image", torch.count_nonzero(segmentation_image))
     segmentation_image = segmentation_image.detach().numpy()
 
     #segmentation_image = np.transpose(segmentation_image, axes = (1,2,0))
     segmentation_image = segmentation_image.astype(np.uint8)
-    print("Segmantation Image", np.count_nonzero(segmentation_image))
-    print("Segmantation Image", segmentation_image.shape)
-    x2 = Image.fromarray(segmentation_image)
-    x2.save('seg_img.jpg')
-    get_parse_13()
+    ## COLOR CODED SEGMENTATION IMAGE (using 'red' pixel value as color code)
+
+    seg_image = Image.fromarray(segmentation_image)
+    seg_image.save("seg.png")
+    #####CONVERTING COLOR CODED SEGMENTATION IMAGE (768,1024)PARSE GEN HOT ENCODED TENSOR ######
+    segmentation_image = segmentation_image[:, :, 0]
+    parse_13 = parse_hot_encoded_vector_from_image(segmentation_image)
 
     print(image.shape,cloth.shape,v_pos.shape,p_pos.shape,ag_mask.shape,skin_mask.shape,pg_output.shape)
     out_image, out_mask, image_ag = generate_repaint(args, image, cloth, v_pos, p_pos[0], ag_mask, skin_mask, pg_output[0])
@@ -559,7 +579,7 @@ def test(args, args_sci):
     model_kwargs = {}
     model_kwargs['gt'] = torch.unsqueeze(norm_transform(totensor_transform(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))), dim=0)
     model_kwargs['gt_keep_mask'] = torch.unsqueeze(totensor_transform(cv2.cvtColor(out_mask, cv2.COLOR_GRAY2RGB)), dim=0)
-    model_kwargs['y'] = pg_output.detach().clone()
+    model_kwargs['y'] = pg_output.detach().clone() ##We are not using  parse - gen image but hot encoded vector directly
 
     sci_result = sample_fn(
                 model_fn,

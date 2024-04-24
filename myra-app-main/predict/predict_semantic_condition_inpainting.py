@@ -2426,7 +2426,11 @@ norm_transform = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 
 out_image = np.array(Image.open('predict/images/out_image.jpg'))
 out_mask = np.array(Image.open('predict/images/out_mask.jpg'))
-pg_output_image = Image.open('predict/images/pose_seg_image.png')
+pg_output_image = Image.open('predict/images/parse_seg_image.png')
+
+### CONVERSION OF IMAGE (768,1024,3) INTO COLOR CODED (768,1024) WITH 8 UNIQUE COLOR CODES
+## WE ARE USING WEIGHTED APPROACH TO COME UP WITH UNIQUE VALUES INSTEAD OF TAKING SIMPLE APPROACH , EG
+## USING RED PIXEL VALUE AS COLOR CODE SINCE TWO DIFFERENT COLOR MAY HAVE SAME RED PIXEL VALUE
 
 pg_output = np.asarray(pg_output_image)
 weights = np.array([0.3,0.6,0.1])
