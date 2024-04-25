@@ -82,8 +82,8 @@ def get_skin_mask():
     return np.array(transforms.Resize(768)(Image.fromarray(skin_mask)))
 
 
-def get_parse_model_hot_encode():
-    im_parse_pil_big = Image.open('seg.png')  # 768x1024
+def get_model_seg_image_hot_encoder():
+    im_parse_pil_big = Image.open('myra-app-main/data/00006_00/parse.png')  # 768x1024
     print(np.array(im_parse_pil_big).shape)
 
     # Shorter side becomes 768 and larger side aligns based upon aspect ratio
@@ -93,11 +93,11 @@ def get_parse_model_hot_encode():
     # None adds dimesnion to first index
     if im_parse_pil.ndim > 2:
         im_parse_pil = im_parse_pil[:,:,0]
-    unique_values = np.unique(im_parse_pil)
-    unique_values.sort()
-    print(("unique values", unique_values))
-    mapping = {label:i for i,label in enumerate(unique_values)}
-    im_parse_pil = np.vectorize(mapping.get)(im_parse_pil)
+    #unique_values = np.unique(im_parse_pil)
+    #unique_values.sort()
+    #print(("unique values", unique_values))
+    #mapping = {label:i for i,label in enumerate(unique_values)}
+    #im_parse_pil = np.vectorize(mapping.get)(im_parse_pil)
     parse = torch.from_numpy(np.array(im_parse_pil)[None]).long()
     parse_13 = torch.FloatTensor(13, 1024, 768).zero_()
     # Basically creates one hot encoding representation where eqach pixel value in the original image is represented as a one-hot vector along the zeroth dimension of parse_13
@@ -145,7 +145,7 @@ def get_dataset_dict():
         'e_pos': get_e_pos(),  # estimated cloth keypoints position
         'ag_mask': get_ag_mask(),
         'skin_mask': get_skin_mask(),
-        'parse_ag': get_parse_model_hot_encode(),
+        'parse_ag': get_model_seg_image_hot_encoder(),
         'c_pos': c_pos,
         's_pos': get_s_pos(),
         'parse': get_parse_img()

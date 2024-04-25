@@ -544,10 +544,8 @@ def test(args, args_sci):
     # Make Note: we don't need color palleted image in original code , byt since we are using Replicate for inference
     ## we have to pass parse generated model image as one of the input param to Semantic Conditioned Inpainting model
     ## In orignal code they directly pass hot encoded vector as input param
-
     unique_colors = torch.randperm(256)[:39]
     colors = unique_colors.view(13,3)
-    #colors = torch.randint(0, 256, size=(13, 3), dtype=torch.uint8)
     # Convert hot_encoded_tensor to [13, 1024, 768] shape
     hot_encoded_tensor = pg_output.squeeze(0)
     # Apply the color palette to the one-hot encoded tensor

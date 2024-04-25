@@ -9,6 +9,7 @@ import os
 import torch
 from predict import predict_pos_keypoints as kg
 from predict import predict_parse_seg_image as pg
+from roboflow_apis import  fetch_model_segmentation_image as rb
 import numpy as np
 import json
 
@@ -353,7 +354,7 @@ def main_page() -> None:
         if model_value and (model_value["x"] != st.session_state.point_selected["x"] and model_value["y"] !=
                             st.session_state.point_selected["y"]):
 
-            st.write("joo")
+
             st.session_state.point_selected = model_value
             if model_node:
                 update_point_over_image(model_image, model_node, model_value, st.session_state.key_points_model,
@@ -377,31 +378,15 @@ def main_page() -> None:
         model_parse_generator = st.button("Run Model Parse Generator!")
         if model_parse_generator:
             p_pos = torch.tensor(st.session_state.key_points_model).float()
-            st.write(p_pos.shape)
-            pg_output = pg.parse_seg_image_hot_encoder(get_s_pos(),p_pos)
 
-            unique_colors = torch.randperm(256)[:39]
-            colors = unique_colors.view(13, 3)
-
-            # Convert hot_encoded_tensor to [13, 1024, 768] shape
-            hot_encoded_tensor = pg_output.squeeze(0)
-            # Apply the color palette to the one-hot encoded tensor
-
-            segmentation_image = torch.matmul(hot_encoded_tensor.permute(1, 2, 0), colors.float())
-
-
-            # Convert the resulting tensor to uint8 and clamp values to [0, 255]
-            segmentation_image = segmentation_image.byte().clamp(0, 255)
-            segmentation_image = segmentation_image.to(torch.int32)
-            segmentation_image = segmentation_image.detach().numpy()
-
-            # segmentation_image = np.transpose(segmentation_image, axes = (1,2,0))
-            segmentation_image = segmentation_image.astype(np.uint8)
-            ## COLOR CODED SEGMENTATION IMAGE (using 'red' pixel value as color code)
-            segmentation_image = segmentation_image[:, :,0]
-            st.write("unique", np.unique(segmentation_image))
-            image = Image.fromarray(segmentation_image)
-            st.image(image)
+            model_seg_image = rb.predict_seg_img(MODEL_IMAGE_ADDRESS)
+            #model_seg_image = Image.open("myra-app-main/data/00006_00/parse.png")
+            st.write("1")
+            pg_output = pg.parse_model_seg_image(get_s_pos(), p_pos, model_seg_image)
+            st.write("2")
+            parse_seg_image = pg.draw_parse_model_image(pg_output)
+            st.write("3")
+            st.image(parse_seg_image)
 
     with col2:
         print("Hi")

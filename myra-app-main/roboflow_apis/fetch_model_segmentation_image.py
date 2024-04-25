@@ -10,11 +10,11 @@ model = project.version(2).model
 #print(model.predict("your_image.jpg", confidence=40, overlap=30).json())
 
 # visualize your prediction
-def predict():
-    original_image = Image.open("myra-app-main/upload_images/image.jpg")
+def predict_seg_img(model_image_address: str) -> Image:
+    original_image = Image.open(model_image_address)
     mask = Image.new(mode='P', size=original_image.size, color=0)
     draw = ImageDraw.Draw(mask)
-    rb_json = model.predict("myra-app-main/upload_images/image.jpg", confidence=40).json()
+    rb_json = model.predict(model_image_address, confidence=40).json()
     predictions = rb_json['predictions']
     for index,prediction in enumerate(predictions):
 
@@ -36,7 +36,8 @@ def predict():
         128, 128, 0  # Olive
     ]
     mask.putpalette(palette)
-    mask.save("myra-app-main/predict/images/model_seg_image.png")
+    return mask
+    #mask.save("myra-app-main/predict/images/model_seg_image.png")
 
 
-predict()
+#predict()

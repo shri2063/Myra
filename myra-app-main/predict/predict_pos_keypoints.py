@@ -337,11 +337,11 @@ def get_p_pos(key_points: torch.Tensor) -> np.ndarray:
     s_pos = get_s_pos().float()
     key_points = key_points.float()
     p_pos = kg_network(key_points, s_pos).detach().numpy()
-    print("p pos", p_pos)
+    #print("p pos", p_pos)
     p_pos = p_pos[0]
     p_pos[:,0] = p_pos[:,0]*768
     p_pos[:, 1] = p_pos[:, 1] * 1024
-    print("p pos", p_pos.shape)
+    #print("p pos", p_pos.shape)
     return p_pos
 
 ### Currently we are passing cloth landmark from streamlit page, otherwise uncomment result[c_pos]
