@@ -12,11 +12,11 @@ from predict import predict_parse_seg_image as pg
 from roboflow_apis import  fetch_model_segmentation_image as rb
 import numpy as np
 import json
-
+import cv2
 from torchvision import transforms
 from streamlit_image_coordinates import streamlit_image_coordinates
-
-from datasets.dataset_tps import  get_s_pos
+from predict_tps import  generate_tps, generate_tps_1
+from datasets.dataset_st import  get_s_pos, get_c_pos
 
 # Define the scope for Google Drive API
 SCOPES = ['https://www.googleapis.com/auth/drive']
@@ -34,15 +34,16 @@ replicate_text = "Stability AI SDXL Model on Replicate"
 replicate_link = "https://replicate.com/stability-ai/sdxl"
 replicate_logo = "https://storage.googleapis.com/llama2_release/Screen%20Shot%202023-07-21%20at%2012.34.05%20PM.png"
 
-# Placeholders for images and gallery
+# Placeholders for myra_v1 and gallery
 generated_images_placeholder = st.empty()
 gallery_placeholder = st.empty()
 
 ## Uploaded image location
 TSHIRT_IMAGE_ADDRESS = "myra-app-main/upload_images/tshirt.jpg"
 MODEL_IMAGE_ADDRESS = "myra-app-main/upload_images/image.jpg"
-
-
+MODEL_SEG_IMAGE_ADDRESS = "myra-app-main/predict/images/parse.png"
+AG_MASK_ADDRESS = "myra-app-main/predict/images/ag_mask.png"
+SKIN_MASK_ADDRESS = "myra-app-main/predict/images/skin_mask.png"
 
 if os.path.exists('myra-app-main/out_image.jpg'):
     os.remove('myra-app-main/out_image.jpg')
@@ -69,7 +70,7 @@ def configure_sidebar() -> None:
                 width = st.number_input("Width of output image", value=1024)
                 height = st.number_input("Height of output image", value=1024)
                 num_outputs = st.slider(
-                    "Number of images to output", value=1, min_value=1, max_value=4)
+                    "Number of myra_v1 to output", value=1, min_value=1, max_value=4)
                 scheduler = st.selectbox('Scheduler', ('DDIM', 'DPMSolverMultistep', 'HeunDiscrete',
                                                        'KarrasDPM', 'K_EULER_ANCESTRAL', 'K_EULER', 'PNDM'))
                 num_inference_steps = st.slider(
@@ -229,7 +230,7 @@ def update_point_over_image(edited_image: Image, node: str, value: dict, kp_arr:
 
 
 def main_page() -> None:
-    """Main page layout and logic for generating images."""
+    """Main page layout and logic for generating myra_v1."""
 
     #############PLOT KEYPOINTS OVER TSHIRT#############
     # SAVE UPLOADED TSHIRT IMAGE AND MODEL IMAGE
@@ -254,7 +255,7 @@ def main_page() -> None:
     # Create two columns to show cloth and model Image
     col1, col2 = st.columns(2)
 
-    # Display the images in the column along with keypoints
+    # Display the myra_v1 in the column along with keypoints
 
     with col1:
         # Create an input text box to select a keypoint whose position needs to be changed
@@ -315,7 +316,7 @@ def main_page() -> None:
     # Create two columns to show cloth and model Image
     col1, col2 = st.columns(2)
 
-    # Display the images in the columns
+    # Display the myra_v1 in the columns
 
     with col1:
 
@@ -377,16 +378,41 @@ def main_page() -> None:
     with col1:
         model_parse_generator = st.button("Run Model Parse Generator!")
         if model_parse_generator:
-            p_pos = torch.tensor(st.session_state.key_points_model).float()
+            p_pos = st.session_state.key_points_model.copy()
+            p_pos = torch.tensor(p_pos)
+            p_pos[:, 0] = p_pos[:, 0] / 768
+            p_pos[:, 1] = p_pos[:, 1] / 1024
+            p_pos = p_pos.float()
 
-            model_seg_image = rb.predict_seg_img(MODEL_IMAGE_ADDRESS)
-            #model_seg_image = Image.open("myra-app-main/data/00006_00/parse.png")
-            st.write("1")
-            pg_output = pg.parse_model_seg_image(get_s_pos(), p_pos, model_seg_image)
-            st.write("2")
+            #model_seg_image, ag_mask, tshirt_mask = rb.predict_seg_img(MODEL_IMAGE_ADDRESS)
+            model_seg_image = Image.open("myra-app-main/data/00006_00/parse.png")
+
+            pg_output,parse13_model_seg = pg.parse_model_seg_image(get_s_pos(), p_pos, model_seg_image)
+
+            ag_mask = 255 - cv2.imread(AG_MASK_ADDRESS, cv2.IMREAD_GRAYSCALE)
+            ag_mask  = np.array(transforms.Resize(768)(Image.fromarray(ag_mask)))
+            skin_mask = cv2.imread(SKIN_MASK_ADDRESS, cv2.IMREAD_GRAYSCALE)
+            skin_mask =  np.array(transforms.Resize(768)(Image.fromarray(skin_mask)))
             parse_seg_image = pg.draw_parse_model_image(pg_output)
-            st.write("3")
             st.image(parse_seg_image)
+            c_pos, v_pos = get_c_pos()
+
+            p_pos = st.session_state.key_points_model.copy()
+            p_pos = torch.tensor(p_pos)
+            p_pos[:, 0] = p_pos[:, 0] / 768
+            p_pos[:, 1] = p_pos[:, 1] / 1024
+            out_image, out_mask = generate_tps_1(
+                np.asarray(Image.open(MODEL_IMAGE_ADDRESS)),
+                np.asarray(Image.open(TSHIRT_IMAGE_ADDRESS)),
+                v_pos.float(),
+                torch.tensor(p_pos.float()),
+                ag_mask,
+                skin_mask,
+                parse13_model_seg.squeeze()
+
+            )
+            st.image(Image.fromarray(out_image))
+            st.image(Image.fromarray(out_mask))
 
     with col2:
         print("Hi")
@@ -418,10 +444,10 @@ def main_page() -> None:
     if isinstance(f5, BytesIO):
         image = Image.open(f5)
         image.save('myra-app-main/upload_images/pg_output.png')
-        # Create two columns for displaying images side by side
+        # Create two columns for displaying myra_v1 side by side
         col1, col2, col3 = st.columns(3)
 
-    # Display the images in the columns
+    # Display the myra_v1 in the columns
     with col1:
         if (os.path.exists('myra-app-main/upload_images/out_image.jpg')):
             st.image('myra-app-main/upload_images/out_image.jpg', caption='Output Image', use_column_width=True)
@@ -471,7 +497,7 @@ def main_page() -> None:
             unsafe_allow_html=True)
 
         st.write(
-            "<span style='font-family: Roboto,sans-serif'>We have listed below few examples of results obtained from Myra AI .The mannequin images below were retrieved from the internet from different sites. "
+            "<span style='font-family: Roboto,sans-serif'>We have listed below few examples of results obtained from Myra AI .The mannequin myra_v1 below were retrieved from the internet from different sites. "
             "pinterest, shutterstock, istockphoto. "
             " Myra AI could "
             "fit AI models within this dress, maintaining the dress outline, tone, and appearance.</span>",
@@ -481,9 +507,9 @@ def main_page() -> None:
         M1 = image_select(
             label="WHITE CREAM COLOUR FULL TSHIRT ON BLUE JEANS (https://www.pinterest.com/pin/30891947430775019)",
             images=[
-                "myra-app-main/images/M1/input.png", "myra-app-main/images/M1/2-2.png",
-                "myra-app-main/images/M1/2-2.png", "myra-app-main/images/M1/3-5.png", "myra-app-main/images/M1/4-3.png",
-                "myra-app-main/images/M1/5-3.png"
+                "myra-app-main/myra_v1/M1/input.png", "myra-app-main/myra_v1/M1/2-2.png",
+                "myra-app-main/myra_v1/M1/2-2.png", "myra-app-main/myra_v1/M1/3-5.png", "myra-app-main/myra_v1/M1/4-3.png",
+                "myra-app-main/myra_v1/M1/5-3.png"
 
             ],
             captions=["Input Image to Myra AI fetched  from pinterest website",
@@ -498,15 +524,15 @@ def main_page() -> None:
         st.write(
             "<span style='font-family: Roboto,sans-serif'>PLEASE CLICK ON ANY ABOVE IMAGE FOR A CLOSER LOOK.</span>",
             unsafe_allow_html=True)
-        if M1 != "images/M1/input.png":
-            # Load the images
-            image1 = Image.open("myra-app-main/images/M1/input.png")
+        if M1 != "myra_v1/M1/input.png":
+            # Load the myra_v1
+            image1 = Image.open("myra-app-main/myra_v1/M1/input.png")
             image2 = Image.open(M1)
 
-            # Create two columns for displaying images side by side
+            # Create two columns for displaying myra_v1 side by side
             col1, col2 = st.columns(2)
 
-            # Display the images in the columns
+            # Display the myra_v1 in the columns
             with col1:
                 st.image(image1, caption='Input Image', use_column_width=True)
 
@@ -519,9 +545,9 @@ def main_page() -> None:
         M6 = image_select(
             label="RED COLLAR DOTTED TSHIRT ON BLUE JEANS (https://www.shutterstock.com/image-photo/fulllength-male-mannequin-dressed-tshirt-jeans-1067987750)",
             images=[
-                "myra-app-main/images/M6/input.png", "myra-app-main/images/M6/1-4.png",
-                "myra-app-main/images/M6/2.png", "myra-app-main/images/M6/3-5.png", "myra-app-main/images/M6/4-3.png",
-                "myra-app-main/images/M6/5-2.png"
+                "myra-app-main/myra_v1/M6/input.png", "myra-app-main/myra_v1/M6/1-4.png",
+                "myra-app-main/myra_v1/M6/2.png", "myra-app-main/myra_v1/M6/3-5.png", "myra-app-main/myra_v1/M6/4-3.png",
+                "myra-app-main/myra_v1/M6/5-2.png"
 
             ],
             captions=["Input image of Mannequin with tshirt obtained from shutterstock website",
@@ -536,15 +562,15 @@ def main_page() -> None:
         st.write(
             "<span style='font-family: Roboto,sans-serif'>PLEASE CLICK ON ANY ABOVE IMAGE FOR A CLOSER LOOK.</span>",
             unsafe_allow_html=True)
-        if M6 != "images/M6/input.png":
-            # Load the images
-            image1 = Image.open("myra-app-main/images/M6/input.png")
+        if M6 != "myra_v1/M6/input.png":
+            # Load the myra_v1
+            image1 = Image.open("myra-app-main/myra_v1/M6/input.png")
             image2 = Image.open(M6)
 
-            # Create two columns for displaying images side by side
+            # Create two columns for displaying myra_v1 side by side
             col1, col2 = st.columns(2)
 
-            # Display the images in the columns
+            # Display the myra_v1 in the columns
             with col1:
                 st.image(image1, caption='Input Image', use_column_width=True)
 
@@ -557,8 +583,8 @@ def main_page() -> None:
         M7 = image_select(
             label="White half sleeves tshirt on blue jeans (https://www.istockphoto.com/photo/full-length-male-mannequin-gm1289535860-385180516)",
             images=[
-                "myra-app-main/images/M7/input.png", "myra-app-main/images/M7/1-2.png",
-                "myra-app-main/images/M7/2-2.png", "myra-app-main/images/M7/3-2.png", "myra-app-main/images/M7/4-3.png",
+                "myra-app-main/myra_v1/M7/input.png", "myra-app-main/myra_v1/M7/1-2.png",
+                "myra-app-main/myra_v1/M7/2-2.png", "myra-app-main/myra_v1/M7/3-2.png", "myra-app-main/myra_v1/M7/4-3.png",
 
             ],
             captions=["Input image of Mannequin with tshirt obtained from istockphoto  website",
@@ -572,15 +598,15 @@ def main_page() -> None:
         st.write(
             "<span style='font-family: Roboto,sans-serif'>PLEASE CLICK ON ANY ABOVE IMAGE FOR A CLOSER LOOK.</span>",
             unsafe_allow_html=True)
-        if M7 != "images/M7/input.png":
-            # Load the images
-            image1 = Image.open("myra-app-main/images/M7/input.png")
+        if M7 != "myra_v1/M7/input.png":
+            # Load the myra_v1
+            image1 = Image.open("myra-app-main/myra_v1/M7/input.png")
             image2 = Image.open(M7)
 
-            # Create two columns for displaying images side by side
+            # Create two columns for displaying myra_v1 side by side
             col1, col2 = st.columns(2)
 
-            # Display the images in the columns
+            # Display the myra_v1 in the columns
             with col1:
                 st.image(image1, caption='Input Image', use_column_width=True)
 
@@ -598,7 +624,7 @@ def main():
 
     This function initializes the sidebar configuration and the main page layout.
     It retrieves the user inputs from the sidebar, and passes them to the main page function.
-    The main page function then generates images based on these inputs.
+    The main page function then generates myra_v1 based on these inputs.
     """
     # submitted, width, height, num_outputs, scheduler, num_inference_steps, guidance_scale, prompt_strength, refine, high_noise_frac, prompt, negative_prompt = configure_sidebar()
     try:

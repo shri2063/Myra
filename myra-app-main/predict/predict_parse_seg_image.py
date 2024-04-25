@@ -14,7 +14,7 @@ import streamlit as st
 
 
 PG_CHECK_POINT_DIR = "myra-app-main/checkpoints_pretrained/pg/step_9999.pt"
-PARSE_SEG_IMAGE = "myra-app-main/predict/images/model_seg_image.png"
+PARSE_SEG_IMAGE = "myra-app-main/predict/myra_v1/model_seg_image.png"
 def draw_skeleton(sk_pos):
     sk_pos[:, 0] = sk_pos[:, 0] * 768
     sk_pos[:, 1] = sk_pos[:, 1] * 1024
@@ -131,7 +131,7 @@ def parse_model_seg_image(s_pos: torch.Tensor, p_pos: torch.Tensor, model_seg_Im
     pg_network.eval()
     #print("s_pos", s_pos.shape)
     #print("p_pos", p_pos.shape)
-    parse_ag = gen_model_seg_image_hot_encoder(model_seg_Image)
+    parse13_model_seg = gen_model_seg_image_hot_encoder(model_seg_Image)
     sk_vis = draw_skeleton(s_pos)  # Model image with keypoints
     #print('sk_vis', sk_vis.shape)
     ck_vis = draw_cloth(p_pos)  # Tshirt image with keypoints
@@ -142,14 +142,14 @@ def parse_model_seg_image(s_pos: torch.Tensor, p_pos: torch.Tensor, model_seg_Im
     #print('sk_input', sk_input.shape)
     ck_input = torch.unsqueeze(norm_transform(ck_vis), dim=0)
     #print('ck_input', ck_input.shape)
-    #print('parse_ag', parse_ag.shape)  # [1,13,768,1024] hot encoded vector of model segmentation image
-    #print('parse ag non zero values', np.count_nonzero(parse_ag))
-    pg_input = torch.cat([parse_ag, sk_input, ck_input], 1)
+    #print('parse13_model_seg', parse13_model_seg.shape)  # [1,13,768,1024] hot encoded vector of model segmentation image
+    #print('parse ag non zero values', np.count_nonzero(parse13_model_seg))
+    pg_input = torch.cat([parse13_model_seg, sk_input, ck_input], 1)
 
     pg_output = pg_network(pg_input)  # [1,13,768,1024] hot encoded vector of parse-generated model segmentation image
     #print('pg_output shape', pg_output.shape)
     pg_output = pred_to_onehot(pg_output).cpu()
-    return pg_output
+    return pg_output, parse13_model_seg
 
 def draw_parse_model_image(pg_output: torch.Tensor) -> torch.Tensor:
     unique_colors = torch.randperm(256)[:39]

@@ -506,8 +506,8 @@ def test(args, args_sci):
     cloth = inputs['cloth']
     ag_mask = inputs['ag_mask']
     skin_mask = inputs['skin_mask']
-    parse = inputs['parse'] # model segmentation image
-    parse_ag = inputs['parse_ag']  # [1,13,768,1024] hot encoded vector of model segmentation image
+    model_seg = inputs['model_seg'] # model segmentation image
+    parse13_model_seg = inputs['parse13_model_seg']  # [1,13,768,1024] hot encoded vector of model segmentation image
     s_pos = inputs['s_pos'].float()  # model pos keypoints
     c_pos = inputs['c_pos'].float()  # tshirt keypoints
     v_pos = inputs['v_pos'].float()
@@ -528,11 +528,11 @@ def test(args, args_sci):
     print('sk_input',sk_input.shape)
     ck_input = torch.unsqueeze(norm_transform(ck_vis), dim=0)
     print('ck_input', ck_input.shape)
-    print('parse_ag', parse_ag.shape) # [1,13,768,1024] hot encoded vector of model segmentation image
-    print('parse ag non zero values', np.count_nonzero(parse_ag))
-    pg_input = torch.cat([parse_ag, sk_input, ck_input], 1)
+    print('parse13_model_seg', parse13_model_seg.shape) # [1,13,768,1024] hot encoded vector of model segmentation image
+    print('model_seg ag non zero values', np.count_nonzero(parse13_model_seg))
+    pg_input = torch.cat([parse13_model_seg, sk_input, ck_input], 1)
 
-    pg_output = pg_network(pg_input) # [1,13,768,1024] hot encoded vector of parse-generated model segmentation image
+    pg_output = pg_network(pg_input) # [1,13,768,1024] hot encoded vector of model_seg-generated model segmentation image
     print('pg_output shape', pg_output.shape)
     pg_output = pred_to_onehot(pg_output).cpu()
 
@@ -542,7 +542,7 @@ def test(args, args_sci):
 
     # We will generate 39 (13,3) unique random values to color pallete hot encoded tensor
     # Make Note: we don't need color palleted image in original code , byt since we are using Replicate for inference
-    ## we have to pass parse generated model image as one of the input param to Semantic Conditioned Inpainting model
+    ## we have to pass model_seg generated model image as one of the input param to Semantic Conditioned Inpainting model
     ## In orignal code they directly pass hot encoded vector as input param
     unique_colors = torch.randperm(256)[:39]
     colors = unique_colors.view(13,3)
@@ -577,7 +577,7 @@ def test(args, args_sci):
     model_kwargs = {}
     model_kwargs['gt'] = torch.unsqueeze(norm_transform(totensor_transform(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))), dim=0)
     model_kwargs['gt_keep_mask'] = torch.unsqueeze(totensor_transform(cv2.cvtColor(out_mask, cv2.COLOR_GRAY2RGB)), dim=0)
-    model_kwargs['y'] = pg_output.detach().clone() ##We are not using  parse - gen image but hot encoded vector directly
+    model_kwargs['y'] = pg_output.detach().clone() ##We are not using  model_seg - gen image but hot encoded vector directly
 
     sci_result = sample_fn(
                 model_fn,
@@ -600,8 +600,8 @@ def test(args, args_sci):
     content_keeping_mask_vis = totensor_transform(cv2.cvtColor(out_mask, cv2.COLOR_GRAY2RGB))
     final_image_vis = totensor_transform(final_image[0])
 
-    parse_vis = visualize_segmap(parse.cpu(), tensor_out=True, batch=0)
-    parse_ag_vis = visualize_segmap(parse_ag.cpu(), tensor_out=True, batch=0)
+    parse_vis = visualize_segmap(model_seg.cpu(), tensor_out=True, batch=0)
+    parse_ag_vis = visualize_segmap(parse13_model_seg.cpu(), tensor_out=True, batch=0)
     parse_estimate_vis = visualize_segmap(pg_output.cpu(), tensor_out=True, batch=0)
 
     grid = make_grid([

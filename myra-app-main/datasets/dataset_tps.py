@@ -25,19 +25,15 @@ def get_s_pos() -> torch.tensor:
         return s_pos
 
 
-
 # cloth pos
 def get_c_pos():
     with open('myra-app-main/data/00006_00/cloth_landmark_json.json', 'r') as f:
         c_pos = json.load(f)
 
-
-        ck_idx = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29,
-              30, 31, 32]
+        ck_idx = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
+                  29,
+                  30, 31, 32]
         c_pos = np.array(c_pos["long"])[ck_idx, :]
-
-
-
 
         c_pos[:, 0] = c_pos[:, 0] / 3
         c_pos[:, 1] = c_pos[:, 1] / 4
@@ -50,9 +46,11 @@ def get_c_pos():
         c_pos[:, 1] = c_pos[:, 1] - c_h
 
         c_pos = torch.tensor(c_pos)
-        return c_pos,v_pos
+        return c_pos, v_pos
+
+
 # parse
-def get_parse_img():
+def get_model_seg_img():
     parse = Image.open('myra-app-main/data/00006_00/parse.png')
     parse = transforms.Resize(768)(parse)
     parse = torch.from_numpy(np.array(parse)[None]).long()
@@ -72,7 +70,7 @@ def get_cloth():
     return np.array(transforms.Resize(768)(Image.fromarray(cloth)))
 
 
-def get_ag_mask():
+def get_tshirt_mask():
     ag_mask = 255 - cv2.imread('myra-app-main/data/00006_00/ag_mask.png', cv2.IMREAD_GRAYSCALE)
     return np.array(transforms.Resize(768)(Image.fromarray(ag_mask)))
 
@@ -92,12 +90,12 @@ def get_model_seg_image_hot_encoder():
 
     # None adds dimesnion to first index
     if im_parse_pil.ndim > 2:
-        im_parse_pil = im_parse_pil[:,:,0]
-    #unique_values = np.unique(im_parse_pil)
-    #unique_values.sort()
-    #print(("unique values", unique_values))
-    #mapping = {label:i for i,label in enumerate(unique_values)}
-    #im_parse_pil = np.vectorize(mapping.get)(im_parse_pil)
+        im_parse_pil = im_parse_pil[:, :, 0]
+    # unique_values = np.unique(im_parse_pil)
+    # unique_values.sort()
+    # print(("unique values", unique_values))
+    # mapping = {label:i for i,label in enumerate(unique_values)}
+    # im_parse_pil = np.vectorize(mapping.get)(im_parse_pil)
     parse = torch.from_numpy(np.array(im_parse_pil)[None]).long()
     parse_13 = torch.FloatTensor(13, 1024, 768).zero_()
     # Basically creates one hot encoding representation where eqach pixel value in the original image is represented as a one-hot vector along the zeroth dimension of parse_13
@@ -105,8 +103,6 @@ def get_model_seg_image_hot_encoder():
     parse_13 = parse_13[None]
     print(parse_13.shape)
     return parse_13
-
-
 
 
 # Cloth Position
@@ -125,12 +121,12 @@ def get_v_pos():
 
 
 # estimated cloth position
-def get_e_pos():
+def get_p_pos():
     with open('myra-app-main/data/00006_00/paired-ck-point.json', 'r') as f:
-        e_pos = json.load(f)
-        e_pos = np.array(e_pos["keypoints"])
-        e_pos = torch.tensor(e_pos)
-        return e_pos
+        p_pos = json.load(f)
+        p_pos = np.array(p_pos["keypoints"])
+        p_pos = torch.tensor(p_pos)
+        return p_pos
 
 
 def get_dataset_dict():
@@ -142,15 +138,13 @@ def get_dataset_dict():
         'image': get_image(),  # target image
         'cloth': get_cloth(),  # cloth image raw numpy array bgr
         'v_pos': v_pos,  # cloth keypoints position raw
-        'e_pos': get_e_pos(),  # estimated cloth keypoints position
-        'ag_mask': get_ag_mask(),
+        'p_pos': get_p_pos(),  # estimated cloth keypoints position
+        'ag_mask': get_tshirt_mask(),
         'skin_mask': get_skin_mask(),
-        'parse_ag': get_model_seg_image_hot_encoder(),
-        'c_pos': c_pos,
-        's_pos': get_s_pos(),
-        'parse': get_parse_img()
+        'parse13_model_seg': get_model_seg_image_hot_encoder(),
+        'c_pos': c_pos,  # # cloth keypoints position
+        's_pos': get_s_pos(),  # model pose keypoints
+        'model_seg': get_model_seg_img()  # model_seg_image
     }
     return result
-
-
-
+get_dataset_dict()

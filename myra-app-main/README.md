@@ -4,7 +4,7 @@
 
 _Image Generator App: where art meets algorithms and dreams meet pixels!_ 🚀
 
-![Astronaut on a unicorn](./gallery/astro_on_unicorn.png)
+![Astronaut on a unicorn](myra_v1/gallery/astro_on_unicorn.png)
 
 ## Overview
 

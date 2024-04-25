@@ -1,6 +1,6 @@
 import cv2
 import torch
-from dataset_tps import get_result
+from datasets.dataset_tps import get_dataset_dict
 import matplotlib.pyplot as plt
 from torchvision.transforms import ToTensor,ToPILImage
 import numpy as np
@@ -130,16 +130,16 @@ def draw_part(group_id, ten_source, ten_target, ten_source_center, ten_target_ce
     ten_wrp = torch.grid_sampler_2d(ten_img[None, ...], warped_grid, 0, 0, False)
     out_img = np.array(ToPILImage()(ten_wrp[0].cpu()))
     r_mask = remove_background(s_mask, out_img)
-    fig,axes = plt.subplots(2,4)
-    axes[0][0].imshow(l_mask, cmap = 'gray')
-    axes[0][0].set_title('L mask')
-    axes[0][1].imshow(s_mask, cmap = 'gray')
-    axes[0][1].set_title('S mask')
-    axes[0][2].imshow(r_mask, cmap='gray')
-    axes[0][2].set_title('R mask')
-    axes[0][3].imshow(out_img, cmap='gray')
-    axes[0][3].set_title('Out Image')
-    plt.show()
+    #fig,axes = plt.subplots(2,4)
+    #axes[0][0].imshow(l_mask, cmap = 'gray')
+    #axes[0][0].set_title('L mask')
+    #axes[0][1].imshow(s_mask, cmap = 'gray')
+    #axes[0][1].set_title('S mask')
+    #axes[0][2].imshow(r_mask, cmap='gray')
+    #axes[0][2].set_title('R mask')
+    #axes[0][3].imshow(out_img, cmap='gray')
+    #axes[0][3].set_title('Out Image')
+    #plt.show()
     # image = warped_grid[0].cpu().numpy()
     # image = np.transpose(image, (1,2,0))
 
@@ -258,42 +258,83 @@ def generate_repaint_1(image, cloth, source, target, ag_mask, skin_mask, parse_1
         r_mask_backbone = s_mask_backbone
 
     out_mask, out_image = paste_cloth(out_mask, out_image, im_backbone, l_mask_backbone, r_mask_backbone, parse_13)
-    plt.title("Backbone Added")
-    plt.imshow(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))
-    plt.show()
+    #plt.title("Backbone Added")
+    #plt.imshow(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))
+    #plt.show()
     out_mask, out_image = paste_cloth(out_mask, out_image, im_left_up, l_mask_left_up, r_mask_left_up, parse_13)
-    plt.title("Left Upper")
-    plt.imshow(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))
-    plt.show()
+    #plt.title("Left Upper")
+    #plt.imshow(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))
+    #plt.show()
     out_mask, out_image = paste_cloth(out_mask, out_image, im_left_low, l_mask_left_low, r_mask_left_low, parse_13)
-    plt.title("Left Lower")
-    plt.imshow(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))
-    plt.show()
+    #plt.title("Left Lower")
+    #plt.imshow(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))
+    #plt.show()
     out_mask, out_image = paste_cloth(out_mask, out_image, im_right_up, l_mask_right_up, r_mask_right_up, parse_13)
-    plt.title("right upper")
-    plt.imshow(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))
-    plt.show()
+    #plt.title("right upper")
+    #plt.imshow(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))
+    #plt.show()
     out_mask, out_image = paste_cloth(out_mask, out_image, im_right_low, l_mask_right_low, r_mask_right_low, parse_13)
-    plt.title("right lower")
-    plt.imshow(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))
-    plt.show()
+    #plt.title("right lower")
+    #plt.imshow(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))
+    #plt.show()
+
+    return out_image, out_mask
 
 
 
-def generation_tps():
-    result = get_result();
-    #print(result)
+def generate_tps_1(image, cloth, source, target, ag_mask, skin_mask, parse_13):
+
+    print("Image", image.shape)
+    print("Cloth", cloth.shape)
+    print("AG MAsk", ag_mask.shape)
+    print("Skin Maks", skin_mask.shape)
+    print("Parse 13", parse_13.shape)
+    print("Source", source.shape)
+    print("Target", target.shape)
+
+    print("----------------------------------------------")
+    result = get_dataset_dict();
+    # print(result)
+    #image = result['image']
+    #cloth = result['cloth']
+    ## mask of the tshirt in output image
+    #ag_mask = result['ag_mask']
+    #skin_mask = result['skin_mask']
+    #parse_13 = result['parse13_model_seg'].squeeze()
+    ## (32,2) key pointers of Source Tshirt
+    #source = result['v_pos'].float()
+    ## (32,2) key pointers of Target Tshirt
+
+    #target = result['p_pos'].float()
+
+
+    print("Image", image.shape)
+    print("Cloth", cloth.shape)
+    print("AG MAsk", ag_mask.shape)
+    print("Skin Maks", skin_mask.shape)
+    print("Parse 13", parse_13.shape)
+    print("Source", source.shape)
+    print("Target", target.shape)
+
+
+    out_image, out_mask = generate_repaint_1(image, cloth, source, target, ag_mask, skin_mask, parse_13)
+    return out_image,out_mask
+
+def generate_tps():
+    result = get_dataset_dict();
+    # print(result)
     image = result['image']
     cloth = result['cloth']
     ## mask of the tshirt in output image
     ag_mask = result['ag_mask']
     skin_mask = result['skin_mask']
-    parse_13 = result['parse_13']
+    parse_13 = result['parse13_model_seg'].squeeze()
     ## (32,2) key pointers of Source Tshirt
     source = result['v_pos'].float()
     ## (32,2) key pointers of Target Tshirt
-    target = result['e_pos'].float()
+    target = result['p_pos'].float()
+
     out_image, out_mask = generate_repaint_1(image, cloth, source, target, ag_mask, skin_mask, parse_13)
+    return out_image, out_mask
 
-
-generation_tps()
+#generate_tps()
