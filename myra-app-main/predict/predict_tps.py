@@ -1,11 +1,13 @@
 import cv2
 import torch
-from datasets.dataset_tps import get_dataset_dict
+import sys
+sys.path.append('myra-app-main/datasets')
+from dataset_tps import get_dataset_dict
 import matplotlib.pyplot as plt
 from torchvision.transforms import ToTensor,ToPILImage
 import numpy as np
 import pyclipper
-
+from torchvision import transforms
 
 
 
@@ -124,9 +126,9 @@ def draw_part(group_id, ten_source, ten_target, ten_source_center, ten_target_ce
     cv2.fillPoly(s_mask, np.int32([new_poly]), 255)
     tps = TPS()
     ten_source_p, ten_target_p = dedup(ten_source_p, ten_target_p, ten_source_center, ten_target_center)
-    print('ten_source_p', ten_source_p.shape)
+    #print('ten_source_p', ten_source_p.shape)
     warped_grid = tps(ten_target_p, ten_source_p, 768, 1024)
-    print("warped Grid Shape", warped_grid.shape)
+    #print("warped Grid Shape", warped_grid.shape)
     ten_wrp = torch.grid_sampler_2d(ten_img[None, ...], warped_grid, 0, 0, False)
     out_img = np.array(ToPILImage()(ten_wrp[0].cpu()))
     r_mask = remove_background(s_mask, out_img)
@@ -160,7 +162,7 @@ def paste_cloth(mask, image, tps_image, l_mask, r_mask, parse_13):
 
     return out_mask, out_image
 
-def generate_repaint(image, cloth, source, target, ag_mask, skin_mask, parse_13):
+def archive_generate_repaint(image, cloth, source, target, ag_mask, skin_mask, parse_13):
     out_mask = ag_mask.copy()
     out_image = image.copy()
     out_image[ag_mask == 0, :] = 0
@@ -209,7 +211,7 @@ def generate_repaint(image, cloth, source, target, ag_mask, skin_mask, parse_13)
     out_mask, out_image = paste_cloth(out_mask, out_image, im_right_low, l_mask_right_low, r_mask_right_low, parse_13)
 
     return out_image, out_mask, image_ag
-def generate_repaint_1(image, cloth, source, target, ag_mask, skin_mask, parse_13):
+def generate_repaint(image, cloth, source, target, ag_mask, skin_mask, parse_13):
     ## Mask of tshirt in output image
     out_mask = ag_mask.copy()
     ## Mask of output image
@@ -235,8 +237,8 @@ def generate_repaint_1(image, cloth, source, target, ag_mask, skin_mask, parse_1
     group_right_low = [24, 25, 26, 27, 28, 29]
 
     ten_cloth = ToTensor()(cloth)
-    print("Cloth", cloth.shape)
-    print("Ten Cloth", ten_cloth.shape)
+    #print("Cloth", cloth.shape)
+    #print("Ten Cloth", ten_cloth.shape)
     ten_source = (source - 0.5) * 2
     ten_target = (target - 0.5) * 2
     ten_source_center = (0.5 * (ten_source[18] - ten_source[2]))[None, ...]  # [B x NumPoints x 2]
@@ -280,44 +282,36 @@ def generate_repaint_1(image, cloth, source, target, ag_mask, skin_mask, parse_1
 
     return out_image, out_mask
 
+def gen_model_seg_image_hot_encoder(model_seg_image: np.ndarray):
 
 
-def generate_tps_1(image, cloth, source, target, ag_mask, skin_mask, parse_13):
+    # Shorter side becomes 768 and larger side aligns based upon aspect ratio
+    #im_parse_pil = transforms.Resize(768)(model_seg_Image)
+    #im_parse_pil = np.asarray(im_parse_pil)
 
-    print("Image", image.shape)
-    print("Cloth", cloth.shape)
-    print("AG MAsk", ag_mask.shape)
-    print("Skin Maks", skin_mask.shape)
-    print("Parse 13", parse_13.shape)
-    print("Source", source.shape)
-    print("Target", target.shape)
+    # None adds dimesnion to first index
+    if model_seg_image.ndim > 2:
+        im_parse_pil = model_seg_image[:, :, 0]
+    unique_values = np.unique(model_seg_image)
+    unique_values.sort()
+    print(("unique values", unique_values))
+    mapping = {label: i for i, label in enumerate(unique_values)}
+    model_seg_image = np.vectorize(mapping.get)(model_seg_image)
+    # None adds dimension to first index
+    parse = torch.from_numpy(np.array(model_seg_image)[None]).long()
 
-    print("----------------------------------------------")
-    result = get_dataset_dict();
-    # print(result)
-    #image = result['image']
-    #cloth = result['cloth']
-    ## mask of the tshirt in output image
-    #ag_mask = result['ag_mask']
-    #skin_mask = result['skin_mask']
-    #parse_13 = result['parse13_model_seg'].squeeze()
-    ## (32,2) key pointers of Source Tshirt
-    #source = result['v_pos'].float()
-    ## (32,2) key pointers of Target Tshirt
+    parse_13 = torch.FloatTensor(13, 1024, 768).zero_()
+    # Basically creates one hot encoding representation where eqach pixel value in the original image is represented as a one-hot vector along the zeroth dimension of parse_13
+    parse_13 = parse_13.scatter_(0, parse, 1.0)
+    parse_13 = parse_13[None]
+    print(parse_13.shape)
+    return parse_13.squeeze()
 
-    #target = result['p_pos'].float()
-
-
-    print("Image", image.shape)
-    print("Cloth", cloth.shape)
-    print("AG MAsk", ag_mask.shape)
-    print("Skin Maks", skin_mask.shape)
-    print("Parse 13", parse_13.shape)
-    print("Source", source.shape)
-    print("Target", target.shape)
-
-
-    out_image, out_mask = generate_repaint_1(image, cloth, source, target, ag_mask, skin_mask, parse_13)
+def generate_tps_st(image: np.ndarray, cloth: np.ndarray, source: torch.Tensor, target: torch.Tensor, ag_mask: np.array, skin_mask: np.array, model_seg_image: np.ndarray):
+    print("Hihihih")
+    parse_13 = gen_model_seg_image_hot_encoder(model_seg_image)
+    print("parse 13", parse_13.shape)
+    out_image, out_mask = generate_repaint(image, cloth, source, target, ag_mask, skin_mask, parse_13)
     return out_image,out_mask
 
 def generate_tps():
@@ -334,7 +328,7 @@ def generate_tps():
     ## (32,2) key pointers of Target Tshirt
     target = result['p_pos'].float()
 
-    out_image, out_mask = generate_repaint_1(image, cloth, source, target, ag_mask, skin_mask, parse_13)
+    out_image, out_mask = generate_repaint(image, cloth, source, target, ag_mask, skin_mask, parse_13)
     return out_image, out_mask
 
 #generate_tps()

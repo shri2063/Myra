@@ -9,14 +9,13 @@ import os
 import torch
 from predict import predict_pos_keypoints as kg
 from predict import predict_parse_seg_image as pg
-from roboflow_apis import  fetch_model_segmentation_image as rb
+# from roboflow_apis import  fetch_model_segmentation_image as rb
 import numpy as np
 import json
-import cv2
 from torchvision import transforms
 from streamlit_image_coordinates import streamlit_image_coordinates
-from predict_tps import  generate_tps, generate_tps_1
-from datasets.dataset_st import  get_s_pos, get_c_pos
+from predict.predict_tps import generate_tps_st
+from datasets.dataset_st import get_s_pos, get_c_pos
 
 # Define the scope for Google Drive API
 SCOPES = ['https://www.googleapis.com/auth/drive']
@@ -41,9 +40,13 @@ gallery_placeholder = st.empty()
 ## Uploaded image location
 TSHIRT_IMAGE_ADDRESS = "myra-app-main/upload_images/tshirt.jpg"
 MODEL_IMAGE_ADDRESS = "myra-app-main/upload_images/image.jpg"
-MODEL_SEG_IMAGE_ADDRESS = "myra-app-main/predict/images/parse.png"
-AG_MASK_ADDRESS = "myra-app-main/predict/images/ag_mask.png"
-SKIN_MASK_ADDRESS = "myra-app-main/predict/images/skin_mask.png"
+MODEL_SEG_IMAGE_ADDRESS = "myra-app-main/upload_images/model_seg_image.png"
+AG_MASK_ADDRESS = "myra-app-main/upload_images/ag_mask.png"
+SKIN_MASK_ADDRESS = "myra-app-main/upload_images/skin_mask.png"
+OUT_MASK_ADDRESS = "myra-app-main/predict/images/out_mask.jpg"
+OUT_IMAGE_ADDRESS = "myra-app-main/predict/images/out_image.jpg"
+MODEL_PARSE_GEN_IMAGE = "myra-app-main/predict/images/model_parse_gen_image.png"
+MODEL_PARSE_AG_FULL = "myra-app-main/upload_images/parse_ag_full.png"
 
 if os.path.exists('myra-app-main/out_image.jpg'):
     os.remove('myra-app-main/out_image.jpg')
@@ -139,12 +142,10 @@ if 'point_selected' not in st.session_state:
     st.session_state.point_selected = {"x": 0, "y": 0}
 
 
-
 # We will be overwriting on tshirt image highlighting keypoints circles with their  labels
 # We need to store in session history cover area boundaries of all key points circles and labels, since when keypoint in modified original img crop could be  brought back
 def write_cover_areas_for_pointer_and_labels(arr: np.ndarray, image: Image, cover_area_pointer_list: list,
                                              cover_area_label_list: list):
-
     point_size = 5
     label_text = 'Point'
 
@@ -152,9 +153,7 @@ def write_cover_areas_for_pointer_and_labels(arr: np.ndarray, image: Image, cove
     font_size = 16
     font = ImageFont.truetype("arial.ttf", font_size)
 
-    text_width, text_height = 5,5
-
-
+    text_width, text_height = 5, 5
 
     # Define the font size and font
     for id, point in enumerate(arr):
@@ -175,7 +174,7 @@ def write_points_and_labels_over_image(arr: np.ndarray, image: Image) -> Image:
     draw = ImageDraw.Draw(image)
     font_size = 16
     font = ImageFont.truetype("arial.ttf", font_size)
-    text_width, text_height = 5,5
+    text_width, text_height = 5, 5
     point_color = 'green'
 
     for id, point in enumerate(arr):
@@ -195,7 +194,7 @@ def update_point_over_image(edited_image: Image, node: str, value: dict, kp_arr:
     draw = ImageDraw.Draw(edited_image)
     font_size = 16
     font = ImageFont.truetype("arial.ttf", font_size)
-    text_width, text_height = 5,5
+    text_width, text_height = 5, 5
 
     node = int(node)
 
@@ -264,9 +263,7 @@ def main_page() -> None:
         if node:
             st.write("You are modifying Node " + node + "   Please click on new position")
 
-
         if os.path.exists(TSHIRT_IMAGE_ADDRESS):
-
 
             with open('myra-app-main/data/00006_00/cloth_landmark_json.json', 'r') as file:
 
@@ -278,7 +275,6 @@ def main_page() -> None:
             image = Image.open(TSHIRT_IMAGE_ADDRESS)
 
             if not st.session_state.cover_area_pointer_list_tshirt:
-
                 write_cover_areas_for_pointer_and_labels(kp_arr, image, st.session_state.cover_area_pointer_list_tshirt,
                                                          st.session_state.cover_area_label_list_tshirt)
 
@@ -320,7 +316,6 @@ def main_page() -> None:
 
     with col1:
 
-
         model_image = Image.open(MODEL_IMAGE_ADDRESS)
         if st.session_state.key_points_model is not None:
             write_points_and_labels_over_image(st.session_state.key_points_model, model_image)
@@ -339,8 +334,8 @@ def main_page() -> None:
             st.session_state.cover_area_pointer_list_model = []
             st.session_state.cover_area_label_list_model = []
             write_cover_areas_for_pointer_and_labels(p_pos, model_image,
-                                                         st.session_state.cover_area_pointer_list_model,
-                                                         st.session_state.cover_area_label_list_model)
+                                                     st.session_state.cover_area_pointer_list_model,
+                                                     st.session_state.cover_area_label_list_model)
 
         model_node = st.text_input('Enter node position to change', key='model_node')
         if model_node:
@@ -354,7 +349,6 @@ def main_page() -> None:
 
         if model_value and (model_value["x"] != st.session_state.point_selected["x"] and model_value["y"] !=
                             st.session_state.point_selected["y"]):
-
 
             st.session_state.point_selected = model_value
             if model_node:
@@ -370,98 +364,80 @@ def main_page() -> None:
         write_points_and_labels_over_image(st.session_state.key_points_model, model_image)
         st.image(model_image, use_column_width=True)
 
-
     ###########PARSE GENERATOR PIPELINE######################
-    # Create two columns to show cloth and model Image
-    col1, col2 = st.columns(2)
 
-    with col1:
-        model_parse_generator = st.button("Run Model Parse Generator!")
-        if model_parse_generator:
-            p_pos = st.session_state.key_points_model.copy()
-            p_pos = torch.tensor(p_pos)
-            p_pos[:, 0] = p_pos[:, 0] / 768
-            p_pos[:, 1] = p_pos[:, 1] / 1024
-            p_pos = p_pos.float()
+    tshirt_warp_generator = st.button("Generate Tshirt Warper!")
+    if tshirt_warp_generator:
+        p_pos = st.session_state.key_points_model.copy()
+        p_pos = torch.tensor(p_pos)
+        p_pos[:, 0] = p_pos[:, 0] / 768
+        p_pos[:, 1] = p_pos[:, 1] / 1024
+        p_pos = p_pos.float()
 
-            #model_seg_image, ag_mask, tshirt_mask = rb.predict_seg_img(MODEL_IMAGE_ADDRESS)
-            model_seg_image = Image.open("myra-app-main/data/00006_00/parse.png")
+        # ag_mask = 255 - cv2.imread(AG_MASK_ADDRESS, cv2.IMREAD_GRAYSCALE)
+        ag_mask = 255 - np.asarray(Image.open(AG_MASK_ADDRESS))
+        ag_mask = np.array(transforms.Resize(768)(Image.fromarray(ag_mask)))
+        skin_mask = np.asarray(Image.open(SKIN_MASK_ADDRESS))
+        skin_mask = np.array(transforms.Resize(768)(Image.fromarray(skin_mask)))
 
-            pg_output,parse13_model_seg = pg.parse_model_seg_image(get_s_pos(), p_pos, model_seg_image)
+        c_pos, v_pos = get_c_pos()
+        out_image, out_mask = generate_tps_st(
+            np.asarray(Image.open(MODEL_IMAGE_ADDRESS)),
+            np.asarray(Image.open(TSHIRT_IMAGE_ADDRESS)),
+            v_pos.float(),
+            torch.tensor(p_pos),
+            ag_mask,
+            skin_mask,
+            np.asarray(Image.open(MODEL_SEG_IMAGE_ADDRESS))
 
-            ag_mask = 255 - cv2.imread(AG_MASK_ADDRESS, cv2.IMREAD_GRAYSCALE)
-            ag_mask  = np.array(transforms.Resize(768)(Image.fromarray(ag_mask)))
-            skin_mask = cv2.imread(SKIN_MASK_ADDRESS, cv2.IMREAD_GRAYSCALE)
-            skin_mask =  np.array(transforms.Resize(768)(Image.fromarray(skin_mask)))
-            parse_seg_image = pg.draw_parse_model_image(pg_output)
-            st.image(parse_seg_image)
-            c_pos, v_pos = get_c_pos()
-
-            p_pos = st.session_state.key_points_model.copy()
-            p_pos = torch.tensor(p_pos)
-            p_pos[:, 0] = p_pos[:, 0] / 768
-            p_pos[:, 1] = p_pos[:, 1] / 1024
-            out_image, out_mask = generate_tps_1(
-                np.asarray(Image.open(MODEL_IMAGE_ADDRESS)),
-                np.asarray(Image.open(TSHIRT_IMAGE_ADDRESS)),
-                v_pos.float(),
-                torch.tensor(p_pos.float()),
-                ag_mask,
-                skin_mask,
-                parse13_model_seg.squeeze()
-
-            )
-            st.image(Image.fromarray(out_image))
-            st.image(Image.fromarray(out_mask))
-
-    with col2:
-        print("Hi")
-
+        )
+        st.image(Image.fromarray(out_image))
+        Image.fromarray(out_image).save('myra-app-main/predict/images/out_image.jpg')
+        Image.fromarray(out_mask).save('myra-app-main/predict/images/out_mask.jpg')
+        # st.image(Image.fromarray(out_mask))
 
     #############DIFFUSION INFERENCE PIPELINE#########################
+    model_diffuse_generator = st.button("Generate Diffused Tshirt!")
+    if model_diffuse_generator:
+        # model_seg_image, ag_mask, tshirt_mask = rb.predict_seg_img(MODEL_IMAGE_ADDRESS)
+        model_seg_image = Image.open(MODEL_SEG_IMAGE_ADDRESS)
+        model_parse_ag_full_image = Image.open(MODEL_PARSE_AG_FULL)
+        p_pos = st.session_state.key_points_model.copy()
+        p_pos = torch.tensor(p_pos)
+        p_pos[:, 0] = p_pos[:, 0] / 768
+        p_pos[:, 1] = p_pos[:, 1] / 1024
+        p_pos = p_pos.float()
+        pg_output, parse13_model_seg = pg.parse_model_seg_image(get_s_pos(), p_pos.clone(), model_parse_ag_full_image)
+        model_parse_gen_image = pg.draw_parse_model_image(pg_output)
+        model_parse_gen_image.save('myra-app-main/predict/images/model_parse_gen_image.png')
 
-    f3 = st.file_uploader("Please choose Warped Output Image")
-    f4 = st.file_uploader("Please choose Warped Mask Image")
-    f5 = st.file_uploader("Please choose Segmentation output Image")
 
-    if not f3:
-        show_file.info("Please upload an image")
-
-    if isinstance(f3, BytesIO):
-        image = Image.open(f3)
-        image.save('myra-app-main/upload_images/out_image.png')
-
-    if not f4:
-        show_file.info("Please upload an image")
-
-    if isinstance(f4, BytesIO):
-        image = Image.open(f4)
-        image.save('myra-app-main/upload_images/out_mask.png')
-
-    if not f5:
-        show_file.info("Please upload an image")
-
-    if isinstance(f5, BytesIO):
-        image = Image.open(f5)
-        image.save('myra-app-main/upload_images/pg_output.png')
-        # Create two columns for displaying myra_v1 side by side
-        col1, col2, col3 = st.columns(3)
-
+    col1, col2, col3 = st.columns(3)
     # Display the myra_v1 in the columns
     with col1:
-        if (os.path.exists('myra-app-main/upload_images/out_image.jpg')):
-            st.image('myra-app-main/upload_images/out_image.jpg', caption='Output Image', use_column_width=True)
-            out_image = cloudinary_upload.uploadImage('myra-app-main/upload_images/out_image.jpg', 'out_image')
+        st.image(OUT_IMAGE_ADDRESS, caption='Output Image', use_column_width=True)
+        out_image = cloudinary_upload.uploadImage(OUT_IMAGE_ADDRESS, 'out_image_4')
+        print("out_image", out_image)
 
     with col2:
-        if (os.path.exists('myra-app-main/uploaded_images/out_mask.jpg')):
-            st.image('myra-app-main/upload_images/out_mask.jpg', caption='Mask Image', use_column_width=True)
-            out_mask = cloudinary_upload.uploadImage('myra-app-main/upload_images/out_mask.jpg', 'out_mask')
+        st.image(OUT_MASK_ADDRESS, caption='Mask Image', use_column_width=True)
+        # out_image = np.array(Image.open(OUT_IMAGE_ADDRESS))
+        out_mask = cloudinary_upload.uploadImage(OUT_MASK_ADDRESS, 'out_mask_4')
+        print("Out mask", out_mask)
 
     with col3:
-        if (os.path.exists('myra-app-main/uploaded_images/pg_output.png')):
-            st.image('myra-app-main/upload_images/pg_output.png', caption='PG Output Image', use_column_width=True)
-            pg_output = cloudinary_upload.uploadImage('myra-app-main/upload_images/pg_output.png', 'pg_output')
+
+        #mono_color_image = np.asarray(Image.open("myra-app-main/data/00006_00/paired_full_parse.png"))
+        #color_image = np.repeat(mono_color_image[:,:,np.newaxis], 3, axis = 2)
+        #color_image[:,:,0] = mono_color_image
+        #color_image[:, :, 1] = mono_color_image
+        #color_image[:, :, 2] = mono_color_image
+        #print(color_image.shape)
+        #Image.fromarray(color_image).save('3c_parse.png')
+
+
+        pg_output = cloudinary_upload.uploadImage(MODEL_PARSE_GEN_IMAGE, 'pg_output_9')
+        st.image(MODEL_PARSE_GEN_IMAGE, caption='PG Output Image', use_column_width=True)
 
     # Create a button
     button_clicked = st.button("Run Diffusion!")
@@ -475,7 +451,7 @@ def main_page() -> None:
                 "out_mask_file": out_mask,
                 "out_image_file": out_image,
                 "pg_output_file": pg_output,
-                "out_image_file_2": "https://replicate.delivery/pbxt/KdXQXAymtIImLDUjy8JPaMcrUuMoSAZJukGlA46JFW0RFHgp/_0_207.jpeg"
+                "out_image_file_2": "https://drive.google.com/uc?id=19NsxtXB4LIA_BlMZih4f17QdBShvNfEf"
             }
         )
 
@@ -508,7 +484,8 @@ def main_page() -> None:
             label="WHITE CREAM COLOUR FULL TSHIRT ON BLUE JEANS (https://www.pinterest.com/pin/30891947430775019)",
             images=[
                 "myra-app-main/myra_v1/M1/input.png", "myra-app-main/myra_v1/M1/2-2.png",
-                "myra-app-main/myra_v1/M1/2-2.png", "myra-app-main/myra_v1/M1/3-5.png", "myra-app-main/myra_v1/M1/4-3.png",
+                "myra-app-main/myra_v1/M1/2-2.png", "myra-app-main/myra_v1/M1/3-5.png",
+                "myra-app-main/myra_v1/M1/4-3.png",
                 "myra-app-main/myra_v1/M1/5-3.png"
 
             ],
@@ -546,7 +523,8 @@ def main_page() -> None:
             label="RED COLLAR DOTTED TSHIRT ON BLUE JEANS (https://www.shutterstock.com/image-photo/fulllength-male-mannequin-dressed-tshirt-jeans-1067987750)",
             images=[
                 "myra-app-main/myra_v1/M6/input.png", "myra-app-main/myra_v1/M6/1-4.png",
-                "myra-app-main/myra_v1/M6/2.png", "myra-app-main/myra_v1/M6/3-5.png", "myra-app-main/myra_v1/M6/4-3.png",
+                "myra-app-main/myra_v1/M6/2.png", "myra-app-main/myra_v1/M6/3-5.png",
+                "myra-app-main/myra_v1/M6/4-3.png",
                 "myra-app-main/myra_v1/M6/5-2.png"
 
             ],
@@ -584,7 +562,8 @@ def main_page() -> None:
             label="White half sleeves tshirt on blue jeans (https://www.istockphoto.com/photo/full-length-male-mannequin-gm1289535860-385180516)",
             images=[
                 "myra-app-main/myra_v1/M7/input.png", "myra-app-main/myra_v1/M7/1-2.png",
-                "myra-app-main/myra_v1/M7/2-2.png", "myra-app-main/myra_v1/M7/3-2.png", "myra-app-main/myra_v1/M7/4-3.png",
+                "myra-app-main/myra_v1/M7/2-2.png", "myra-app-main/myra_v1/M7/3-2.png",
+                "myra-app-main/myra_v1/M7/4-3.png",
 
             ],
             captions=["Input image of Mannequin with tshirt obtained from istockphoto  website",

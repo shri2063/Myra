@@ -5,7 +5,7 @@ import torchvision.transforms as transforms
 import json
 import cv2
 
-
+MODEL_SEG_IMAGE = "myra-app-main/data/00006_00/parse.png"
 # skeleton pos
 def get_s_pos() -> torch.tensor:
     with open('myra-app-main/data/00006_00/00006_00_keypoints.json', 'r') as f:
@@ -51,7 +51,7 @@ def get_c_pos():
 
 # parse
 def get_model_seg_img():
-    parse = Image.open('myra-app-main/data/00006_00/parse.png')
+    parse = Image.open(MODEL_SEG_IMAGE)
     parse = transforms.Resize(768)(parse)
     parse = torch.from_numpy(np.array(parse)[None]).long()
     return parse;
@@ -81,7 +81,7 @@ def get_skin_mask():
 
 
 def get_model_seg_image_hot_encoder():
-    im_parse_pil_big = Image.open('myra-app-main/data/00006_00/parse.png')  # 768x1024
+    im_parse_pil_big = Image.open("myra-app-main/predict/images/parse_ag_full.png")  # 768x1024
     print(np.array(im_parse_pil_big).shape)
 
     # Shorter side becomes 768 and larger side aligns based upon aspect ratio
@@ -101,6 +101,10 @@ def get_model_seg_image_hot_encoder():
     # Basically creates one hot encoding representation where eqach pixel value in the original image is represented as a one-hot vector along the zeroth dimension of parse_13
     parse_13 = parse_13.scatter_(0, parse, 1.0)
     parse_13 = parse_13[None]
+
+
+
+
     print(parse_13.shape)
     return parse_13
 

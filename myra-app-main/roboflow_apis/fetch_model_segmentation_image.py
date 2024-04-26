@@ -47,7 +47,7 @@ def predict_seg_img(model_image_address: str) -> Image:
         128, 128, 0  # Olive
     ]
     model_seg.putpalette(palette)
-    model_seg.save("myra-app-main/predict/images/parse.png")
+    model_seg.save("myra-app-main/predict/images/model_seg_image.png")
     ag_mask.save("myra-app-main/predict/images/ag_mask.png")
     skin_mask.save("myra-app-main/predict/images/skin_mask.png")
     return model_seg,ag_mask,skin_mask

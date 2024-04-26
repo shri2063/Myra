@@ -96,6 +96,32 @@ def pred_to_onehot(prediction):
     pred_onehot = pred_onehot.scatter_(1, prediction_max.unsqueeze(1).data.long(), 1.0)
     return pred_onehot
 
+def get_model_seg_image_hot_encoder(model_image):
+
+
+    # Shorter side becomes 768 and larger side aligns based upon aspect ratio
+    model_image = transforms.Resize(768)(model_image)
+    model_image = np.asarray(model_image)
+
+    # None adds dimesnion to first index
+    if model_image.ndim > 2:
+        im_parse_pil = model_image[:, :, 0]
+    # unique_values = np.unique(im_parse_pil)
+    # unique_values.sort()
+    # print(("unique values", unique_values))
+    # mapping = {label:i for i,label in enumerate(unique_values)}
+    # im_parse_pil = np.vectorize(mapping.get)(im_parse_pil)
+    parse = torch.from_numpy(np.array(model_image)[None]).long()
+    parse_13 = torch.FloatTensor(13, 1024, 768).zero_()
+    # Basically creates one hot encoding representation where eqach pixel value in the original image is represented as a one-hot vector along the zeroth dimension of parse_13
+    parse_13 = parse_13.scatter_(0, parse, 1.0)
+    parse_13 = parse_13[None]
+
+
+
+
+    print(parse_13.shape)
+    return parse_13
 def gen_model_seg_image_hot_encoder(model_seg_Image: Image):
 
 
@@ -122,7 +148,7 @@ def gen_model_seg_image_hot_encoder(model_seg_Image: Image):
     return parse_13
 
 
-def parse_model_seg_image(s_pos: torch.Tensor, p_pos: torch.Tensor, model_seg_Image: Image):
+def parse_model_seg_image(s_pos: torch.Tensor, p_pos: torch.Tensor,model_parse_ag_full_image: Image):
 
     pg_network = ParseGenerator(input_nc=19, output_nc=13, ngf=64).to(torch.device('cpu'))
 
@@ -131,7 +157,7 @@ def parse_model_seg_image(s_pos: torch.Tensor, p_pos: torch.Tensor, model_seg_Im
     pg_network.eval()
     #print("s_pos", s_pos.shape)
     #print("p_pos", p_pos.shape)
-    parse13_model_seg = gen_model_seg_image_hot_encoder(model_seg_Image)
+    parse13_model_seg = get_model_seg_image_hot_encoder(model_parse_ag_full_image)
     sk_vis = draw_skeleton(s_pos)  # Model image with keypoints
     #print('sk_vis', sk_vis.shape)
     ck_vis = draw_cloth(p_pos)  # Tshirt image with keypoints
@@ -151,7 +177,7 @@ def parse_model_seg_image(s_pos: torch.Tensor, p_pos: torch.Tensor, model_seg_Im
     pg_output = pred_to_onehot(pg_output).cpu()
     return pg_output, parse13_model_seg
 
-def draw_parse_model_image(pg_output: torch.Tensor) -> torch.Tensor:
+def draw_parse_model_image(pg_output: torch.Tensor) -> Image:
     unique_colors = torch.randperm(256)[:39]
     colors = unique_colors.view(13, 3)
     # Convert hot_encoded_tensor to [13, 1024, 768] shape

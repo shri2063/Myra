@@ -290,6 +290,8 @@ def generate_repaint(args, image, cloth, source, target, ag_mask, skin_mask, par
 
     # paste skin
     new_skin_mask = skin_mask.copy()
+    print("skin mask", skin_mask.shape)
+    print("parse 13", parse_13.shape)
     new_skin_mask[(parse_13[5] + parse_13[6] + parse_13[11]).numpy() == 0] = 0
 
     out_mask[new_skin_mask==255] = 255
