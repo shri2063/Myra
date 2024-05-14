@@ -5,10 +5,24 @@ import torchvision.transforms as transforms
 import json
 import cv2
 
-MODEL_SEG_IMAGE = "myra-app-main/data/00006_00/parse.png"
+
+'''
+image - model input image --> model_input_image
+cloth - input tshirt image --> tshirt_image
+cloth_landmark_json - cloth keypoints --> c_pos
+openpose_json - model input keypoints -> s_pos
+ag_mask - mask of tshirt + hands ------> ag_mask
+skin_mask - mask of skin (hands and necks) -> skin_mask
+parse - Input model image segmentation --> model_input_seg
+paired-ck-point.json - predicted keypoints based upon model pose -> p_pos
+paired_full_parse - predicted model segmentation on input tshirt -> pg_output (Not sure)
+parse_ag_full - input Model segmentation image without tshirt and hands -> parse_ag_full
+
+'''
+
 # skeleton pos
 def get_s_pos() -> torch.tensor:
-    with open('myra-app-main/data/00006_00/00006_00_keypoints.json', 'r') as f:
+    with open('myra-app-main/data/00006_00/openpose_json.json', 'r') as f:
         s_pos = json.load(f)["people"][0]["pose_keypoints_2d"]
         sk_idx = [0, 1, 2, 3, 4, 5, 6, 7, 9, 12]
         s_pos = np.resize(s_pos, (25, 3))[sk_idx, 0:2]
@@ -27,7 +41,7 @@ def get_s_pos() -> torch.tensor:
 
 # cloth pos
 def get_c_pos():
-    with open('myra-app-main/data/00006_00/cloth_landmark_json.json', 'r') as f:
+    with open('myra-app-main/data/00006_00/cloth-landmark-json.json', 'r') as f:
         c_pos = json.load(f)
 
         ck_idx = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
@@ -51,7 +65,7 @@ def get_c_pos():
 
 # parse
 def get_model_seg_img():
-    parse = Image.open(MODEL_SEG_IMAGE)
+    parse = Image.open("myra-app-main/data/00006_00/parse.png")
     parse = transforms.Resize(768)(parse)
     parse = torch.from_numpy(np.array(parse)[None]).long()
     return parse;
@@ -81,7 +95,8 @@ def get_skin_mask():
 
 
 def get_model_seg_image_hot_encoder():
-    im_parse_pil_big = Image.open("myra-app-main/predict/images/parse_ag_full.png")  # 768x1024
+    #im_parse_pil_big = Image.open("myra-app-main/predict/images/parse_ag_full.png")  # 768x1024
+    im_parse_pil_big = Image.open("myra-app-main/data/00006_00/parse.png")  # 768x1024
     print(np.array(im_parse_pil_big).shape)
 
     # Shorter side becomes 768 and larger side aligns based upon aspect ratio
@@ -107,12 +122,33 @@ def get_model_seg_image_hot_encoder():
 
     print(parse_13.shape)
     return parse_13
+def get_ag_parse_image_hot_encoder():
+    #im_parse_pil_big = Image.open("myra-app-main/predict/images/parse_ag_full.png")  # 768x1024
+    im_parse_pil_big = Image.open("myra-app-main/data/00006_00/parse_ag_full.png")  # 768x1024
+    print(np.array(im_parse_pil_big).shape)
 
+    # Shorter side becomes 768 and larger side aligns based upon aspect ratio
+    im_parse_pil = transforms.Resize(768)(im_parse_pil_big)
+    im_parse_pil = np.asarray(im_parse_pil)
+
+    # None adds dimesnion to first index
+    if im_parse_pil.ndim > 2:
+        im_parse_pil = im_parse_pil[:, :, 0]
+    # unique_values = np.unique(im_parse_pil)
+    # unique_values.sort()
+    # print(("unique values", unique_values))
+    # mapping = {label:i for i,label in enumerate(unique_values)}
+    # im_parse_pil = np.vectorize(mapping.get)(im_parse_pil)
+    parse = torch.from_numpy(np.array(im_parse_pil)[None]).long()
+    parse_13 = torch.FloatTensor(13, 1024, 768).zero_()
+    # Basically creates one hot encoding representation where eqach pixel value in the original image is represented as a one-hot vector along the zeroth dimension of parse_13
+    parse_13 = parse_13.scatter_(0, parse, 1.0)
+    parse_13 = parse_13[None]
 
 # Cloth Position
 '''
 def get_v_pos():
-    with open('myra-app-main/data/00006_00/cloth_landmark_json.json','r') as f:
+    with open('myra-app-main/data/00006_00/cloth-landmark-json.json','r') as f:
         c_pos = json.load(f)
     ck_idx = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31, 32]
     # create a subset of c_pos as per index mentioned
@@ -145,7 +181,7 @@ def get_dataset_dict():
         'p_pos': get_p_pos(),  # estimated cloth keypoints position
         'ag_mask': get_tshirt_mask(),
         'skin_mask': get_skin_mask(),
-        'parse13_model_seg': get_model_seg_image_hot_encoder(),
+        'parse_ag': get_ag_parse_image_hot_encoder(),
         'c_pos': c_pos,  # # cloth keypoints position
         's_pos': get_s_pos(),  # model pose keypoints
         'model_seg': get_model_seg_img()  # model_seg_image

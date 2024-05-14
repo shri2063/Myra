@@ -7,7 +7,7 @@ import math
 import sys
 import json
 from PIL import Image
-
+import json
 sys.path.append('myra-app-main/datasets')
 import matplotlib.pyplot as plt
 from dataset_tps import  get_s_pos
@@ -289,14 +289,14 @@ def draw_cloth(ck_pos):
 
 
 def get_c_pos() -> torch.Tensor:
-    with open('myra-app-main/data/00006_00/cloth_landmark_json.json', 'r') as file:
+    with open('myra-app-main/data/00006_00/cloth-landmark-json.json', 'r') as file:
         keypoints = json.load(file)
         # print(len( keypoints["long"]))
         arr = np.array(keypoints["long"]) * 250
 
     print(arr)
     # Load the image using Streamlit
-    image = Image.open("myra-app-main/data/00006_00/cloth.jpg")
+    image = Image.open("myra-app-main/data/00006_00/image.jpg")
 
     # Create Matplotlib figure
     fig, ax = plt.subplots()
@@ -339,6 +339,8 @@ def get_p_pos(key_points: torch.Tensor) -> np.ndarray:
     p_pos = kg_network(key_points, s_pos).detach().numpy()
     #print("p pos", p_pos)
     p_pos = p_pos[0]
+    with open("myra-app-main/predict/p_pos.json", "a") as file:
+        json.dump(p_pos.tolist(), file)
     p_pos[:,0] = p_pos[:,0]*768
     p_pos[:, 1] = p_pos[:, 1] * 1024
     #print("p pos", p_pos.shape)

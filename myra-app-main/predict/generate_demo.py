@@ -18,7 +18,7 @@ import sys
 
 
 
-sys.path.append('myra-app-main/models')
+sys.path.append('myra-app-main/image')
 from semgcn import GCN_2
 from networks_pg import ParseGenerator
 
@@ -509,7 +509,7 @@ def test(args, args_sci):
     ag_mask = inputs['ag_mask']
     skin_mask = inputs['skin_mask']
     model_seg = inputs['model_seg'] # model segmentation image
-    parse13_model_seg = inputs['parse13_model_seg']  # [1,13,768,1024] hot encoded vector of model segmentation image
+    parse_ag = inputs['parse_ag']  # [1,13,768,1024] hot encoded vector of model segmentation image
     s_pos = inputs['s_pos'].float()  # model pos keypoints
     c_pos = inputs['c_pos'].float()  # tshirt keypoints
     v_pos = inputs['v_pos'].float()
@@ -530,9 +530,9 @@ def test(args, args_sci):
     print('sk_input',sk_input.shape)
     ck_input = torch.unsqueeze(norm_transform(ck_vis), dim=0)
     print('ck_input', ck_input.shape)
-    print('parse13_model_seg', parse13_model_seg.shape) # [1,13,768,1024] hot encoded vector of model segmentation image
-    print('model_seg ag non zero values', np.count_nonzero(parse13_model_seg))
-    pg_input = torch.cat([parse13_model_seg, sk_input, ck_input], 1)
+    print('parse_ag', parse_ag.shape) # [1,13,768,1024] hot encoded vector of model segmentation image
+    print('model_seg ag non zero values', np.count_nonzero(parse_ag))
+    pg_input = torch.cat([parse_ag, sk_input, ck_input], 1)
 
     pg_output = pg_network(pg_input) # [1,13,768,1024] hot encoded vector of model_seg-generated model segmentation image
     print('pg_output shape', pg_output.shape)
@@ -603,7 +603,7 @@ def test(args, args_sci):
     final_image_vis = totensor_transform(final_image[0])
 
     parse_vis = visualize_segmap(model_seg.cpu(), tensor_out=True, batch=0)
-    parse_ag_vis = visualize_segmap(parse13_model_seg.cpu(), tensor_out=True, batch=0)
+    parse_ag_vis = visualize_segmap(parse_ag.cpu(), tensor_out=True, batch=0)
     parse_estimate_vis = visualize_segmap(pg_output.cpu(), tensor_out=True, batch=0)
 
     grid = make_grid([

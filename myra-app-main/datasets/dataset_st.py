@@ -2,7 +2,7 @@ import json
 import torch
 import numpy as np
 def get_c_pos():
-    with open('myra-app-main/data/00006_00/cloth_landmark_json.json', 'r') as f:
+    with open('myra-app-main/data/00006_00/cloth-landmark-json.json', 'r') as f:
         c_pos = json.load(f)
 
         ck_idx = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
@@ -24,7 +24,7 @@ def get_c_pos():
         return c_pos, v_pos
 
 def get_s_pos() -> torch.tensor:
-    with open('myra-app-main/upload_images/00006_00_keypoints.json', 'r') as f:
+    with open('myra-app-main/upload_images/openpose_json.json', 'r') as f:
         s_pos = json.load(f)["people"][0]["pose_keypoints_2d"]
         sk_idx = [0, 1, 2, 3, 4, 5, 6, 7, 9, 12]
         s_pos = np.resize(s_pos, (25, 3))[sk_idx, 0:2]

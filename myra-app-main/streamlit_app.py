@@ -6,16 +6,23 @@ import requests
 from io import BytesIO
 from upload_images import cloudinary_upload
 import os
+from torchvision import transforms
 import torch
-from predict import predict_pos_keypoints as kg
-from predict import predict_parse_seg_image as pg
-# from roboflow_apis import  fetch_model_segmentation_image as rb
 import numpy as np
 import json
-from torchvision import transforms
+import base64
+from os import listdir
+from math import ceil
+import pandas as pd
+import random
+import string
+from utility import  *
 from streamlit_image_coordinates import streamlit_image_coordinates
 from predict.predict_tps import generate_tps_st
-from datasets.dataset_st import get_s_pos, get_c_pos
+from predict import predict_parse_seg_image as pg
+from predict import predict_pos_keypoints as kg
+
+
 
 # Define the scope for Google Drive API
 SCOPES = ['https://www.googleapis.com/auth/drive']
@@ -37,16 +44,7 @@ replicate_logo = "https://storage.googleapis.com/llama2_release/Screen%20Shot%20
 generated_images_placeholder = st.empty()
 gallery_placeholder = st.empty()
 
-## Uploaded image location
-TSHIRT_IMAGE_ADDRESS = "myra-app-main/upload_images/tshirt.jpg"
-MODEL_IMAGE_ADDRESS = "myra-app-main/upload_images/image.jpg"
-MODEL_SEG_IMAGE_ADDRESS = "myra-app-main/upload_images/model_seg_image.png"
-AG_MASK_ADDRESS = "myra-app-main/upload_images/ag_mask.png"
-SKIN_MASK_ADDRESS = "myra-app-main/upload_images/skin_mask.png"
-OUT_MASK_ADDRESS = "myra-app-main/predict/images/out_mask.jpg"
-OUT_IMAGE_ADDRESS = "myra-app-main/predict/images/out_image.jpg"
-MODEL_PARSE_GEN_IMAGE = "myra-app-main/predict/images/model_parse_gen_image.png"
-MODEL_PARSE_AG_FULL = "myra-app-main/upload_images/parse_ag_full.png"
+
 
 if os.path.exists('myra-app-main/out_image.jpg'):
     os.remove('myra-app-main/out_image.jpg')
@@ -55,6 +53,23 @@ if os.path.exists('myra-app-main/out_mask.jpg'):
 if os.path.exists('myra-app-main/pg_output.png'):
     os.remove('myra-app-main/pg_output.png')
 
+### Session State variables
+if 'cover_area_pointer_list_tshirt' not in st.session_state:
+    st.session_state.cover_area_pointer_list_tshirt = []
+if 'cover_area_label_list_tshirt' not in st.session_state:
+    st.session_state.cover_area_label_list_tshirt = []
+if 'cover_area_pointer_list_model' not in st.session_state:
+    st.session_state.cover_area_pointer_list_model = []
+if 'cover_area_label_list_model' not in st.session_state:
+    st.session_state.cover_area_label_list_model = []
+if 'key_points_tshirt' not in st.session_state:
+    st.session_state.key_points_tshirt = None
+if 'key_points_model' not in st.session_state:
+    st.session_state.key_points_model = None
+if 'pg_output' not in st.session_state:
+    st.session_state.pg_output = None
+if 'point_selected' not in st.session_state:
+    st.session_state.point_selected = {"x": 0, "y": 0}
 
 def configure_sidebar() -> None:
     """
@@ -126,24 +141,54 @@ def configure_sidebar() -> None:
 
 
 ### Session State variables
-if 'cover_area_pointer_list_tshirt' not in st.session_state:
-    st.session_state.cover_area_pointer_list_tshirt = []
-if 'cover_area_label_list_tshirt' not in st.session_state:
-    st.session_state.cover_area_label_list_tshirt = []
-if 'cover_area_pointer_list_model' not in st.session_state:
-    st.session_state.cover_area_pointer_list_model = []
-if 'cover_area_label_list_model' not in st.session_state:
-    st.session_state.cover_area_label_list_model = []
-if 'key_points_tshirt' not in st.session_state:
-    st.session_state.key_points_tshirt = None
-if 'key_points_model' not in st.session_state:
-    st.session_state.key_points_model = None
-if 'point_selected' not in st.session_state:
-    st.session_state.point_selected = {"x": 0, "y": 0}
+if 'selected_model' not in st.session_state:
+    st.session_state.selected_model = '00035_00'
+if 'selected_tshirt' not in st.session_state:
+    st.session_state.selected_tshirt = '00034_00'
 
 
-# We will be overwriting on tshirt image highlighting keypoints circles with their  labels
-# We need to store in session history cover area boundaries of all key points circles and labels, since when keypoint in modified original img crop could be  brought back
+def update_point_over_image(edited_image: Image, node: str, value: dict, kp_arr: np.ndarray,
+                            cover_area_pointer_list: list, cover_area_label_list: list,address:str):
+    st.write("heyy")
+    point_size = 5
+    label_text = 'Point'
+    draw = ImageDraw.Draw(edited_image)
+    font_size = 16
+    font = ImageFont.truetype("arial.ttf", font_size)
+    text_width, text_height = 5, 5
+
+    node = int(node)
+    st.write(f"values earlier: Node: {node}--- {kp_arr[node][0]}--{kp_arr[node][1]}")
+    kp_arr[node][0] = value["x"]
+    kp_arr[node][1] = value["y"]
+    st.write(f"values after {kp_arr[node][0]}--{kp_arr[node][1]}")
+
+    original_image = Image.open(address)
+    image_crop = original_image.crop(cover_area_label_list[node])
+    edited_image.paste(image_crop, cover_area_label_list[node])
+    image_crop = original_image.crop(cover_area_pointer_list[node])
+    edited_image.paste(image_crop, cover_area_pointer_list[node])
+    draw.ellipse((kp_arr[node][0] - point_size,
+                  kp_arr[node][1] - point_size,
+                  kp_arr[node][0] + point_size,
+                  kp_arr[node][1] + point_size),
+                 fill='red')
+    cover_area_pointer = (int(kp_arr[node][0]) - int(point_size),
+                          int(kp_arr[node][1]) - int(point_size),
+                          int(kp_arr[node][0]) + int(point_size) + 5,
+                          int(kp_arr[node][1]) + int(point_size) + 5)
+    cover_area_pointer_list[node] = cover_area_pointer
+    text_x = kp_arr[node][0] + point_size + 5  # Adjust for spacing
+    text_y = kp_arr[node][1] - text_height // 2
+    cover_area_label = (int(kp_arr[node][0] + point_size + 5),
+                        int(kp_arr[node][1] - text_height // 2),
+                        int(kp_arr[node][0]) + int(point_size) + 5 + int(
+                            text_width),
+                        int(kp_arr[node][1]) - text_height // 2 + int(
+                            text_height))
+    cover_area_label_list[node] = cover_area_label
+    draw.text((text_x, text_y), str(node), fill='red', font=font)
+
 def write_cover_areas_for_pointer_and_labels(arr: np.ndarray, image: Image, cover_area_pointer_list: list,
                                              cover_area_label_list: list):
     point_size = 5
@@ -187,69 +232,114 @@ def write_points_and_labels_over_image(arr: np.ndarray, image: Image) -> Image:
     return image
 
 
-def update_point_over_image(edited_image: Image, node: str, value: dict, kp_arr: np.ndarray,
-                            cover_area_pointer_list: list, cover_area_label_list: list):
-    point_size = 5
-    label_text = 'Point'
-    draw = ImageDraw.Draw(edited_image)
-    font_size = 16
-    font = ImageFont.truetype("arial.ttf", font_size)
-    text_width, text_height = 5, 5
-
-    node = int(node)
-
-    kp_arr[node][0] = value["x"]
-    kp_arr[node][1] = value["y"]
-
-    original_image = Image.open(TSHIRT_IMAGE_ADDRESS)
-    image_crop = original_image.crop(cover_area_label_list[node])
-    edited_image.paste(image_crop, cover_area_label_list[node])
-    image_crop = original_image.crop(cover_area_pointer_list[node])
-    edited_image.paste(image_crop, cover_area_pointer_list[node])
-    draw.ellipse((kp_arr[node][0] - point_size,
-                  kp_arr[node][1] - point_size,
-                  kp_arr[node][0] + point_size,
-                  kp_arr[node][1] + point_size),
-                 fill='red')
-    cover_area_pointer = (int(kp_arr[node][0]) - int(point_size),
-                          int(kp_arr[node][1]) - int(point_size),
-                          int(kp_arr[node][0]) + int(point_size) + 5,
-                          int(kp_arr[node][1]) + int(point_size) + 5)
-    cover_area_pointer_list[node] = cover_area_pointer
-    text_x = kp_arr[node][0] + point_size + 5  # Adjust for spacing
-    text_y = kp_arr[node][1] - text_height // 2
-    cover_area_label = (int(kp_arr[node][0] + point_size + 5),
-                        int(kp_arr[node][1] - text_height // 2),
-                        int(kp_arr[node][0]) + int(point_size) + 5 + int(
-                            text_width),
-                        int(kp_arr[node][1]) - text_height // 2 + int(
-                            text_height))
-    cover_area_label_list[node] = cover_area_label
-    draw.text((text_x, text_y), str(node), fill='red', font=font)
-
-
-def main_page() -> None:
+def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
     """Main page layout and logic for generating myra_v1."""
 
-    #############PLOT KEYPOINTS OVER TSHIRT#############
-    # SAVE UPLOADED TSHIRT IMAGE AND MODEL IMAGE
-    f1 = st.file_uploader("Please choose tshirt Image")
-    f2 = st.file_uploader("Please choose Model Pos image ")
+    directory_models = r'myra-app-main/data/image'
+    directory_tshirts = r'myra-app-main/data/cloth'
 
-    show_file = st.empty()
-    if not f1:
-        show_file.info("Please upload an image")
 
-    if isinstance(f1, BytesIO):
-        image = Image.open(f1)
-        image.save('myra-app-main/upload_images/tshirt.jpg')
 
-    if not f2:
-        show_file.info("Please upload an image")
+    def initialize(directory, type):
 
-    if isinstance(f2, BytesIO):
-        image = Image.open(f2)
-        image.save('myra-app-main/upload_images/image.jpg')
+        if type == "model":
+            if 'df_models' not in st.session_state:
+                files = listdir(directory_models)
+                df_models = pd.DataFrame({'file': files,
+                                   'selected': [False] * len(files),
+                                   'label': [''] * len(files)})
+                df_models.set_index('file', inplace=True)
+                st.session_state.df_models = df_models
+                return df_models
+        elif type == "tshirt":
+            if 'df_tshirts' not in st.session_state:
+                files = listdir(directory_tshirts)
+                df_tshirts = pd.DataFrame({'file': files,
+                                          'selected': [False] * len(files),
+                                          'label': [''] * len(files)})
+                df_tshirts.set_index('file', inplace=True)
+                st.session_state.df_tshirts = df_tshirts
+                return df_tshirts
+
+
+    def update(image, type):
+        if type == 'model':
+            st.write(f'Model: {image[:8]}')
+            st.session_state.selected_model = image[:8]
+        if type == 'tshirt':
+            st.write(f'Tshirt: {image[:8]}')
+            st.session_state.selected_tshirt = image[:8]
+
+
+
+
+    initialize( r'myra-app-main/data/image','model')
+    initialize(r'myra-app-main/data/cloth', 'tshirt')
+    controls_models = st.columns(3)
+    files_models = st.session_state.df_models.index.tolist()
+    st.write("SELECT A MODEL")
+    with controls_models[0]:
+        batch_size = st.select_slider("Batch size:", range(3, 15, 3), key = "batch_model")
+    with controls_models[1]:
+        row_size = st.select_slider("Row size:", range(1, 6), value=5, key = "row_model")
+    num_batches = ceil(len(files_models) / batch_size)
+    with controls_models[2]:
+        page = st.selectbox("Page", range(1, num_batches + 1), key = "page_model")
+
+
+    #### Showig
+    batch_models = files_models[(page - 1) * batch_size: page * batch_size]
+    grid_models = st.columns(row_size)
+    col = 0
+
+
+    for image in batch_models:
+
+        with grid_models[col]:
+            st.image(f'{directory_models}\{image}', caption='bike')
+            #print(st.session_state.df_models.at[0,'selected'])
+            #st.write(st.session_state.df_models.at[0,'selected'])
+            st.checkbox("SELECT", key=f'image_{image}',
+                        value=False,
+                        on_change=update, args=(image, 'model'))
+
+
+        col = (col + 1) % row_size
+
+    controls_tshirts = st.columns(3)
+    files_tshirts = st.session_state.df_tshirts.index.tolist()
+    st.write("SELECT A TSHIRT")
+    with controls_tshirts[0]:
+        batch_size = st.select_slider("Batch size:", range(3, 15, 3), key = "batch_tshirt")
+    with controls_tshirts[1]:
+        row_size = st.select_slider("Row size:", range(1, 6), value=5, key = "row_tshirt")
+    num_batches = ceil(len(files_tshirts) / batch_size)
+    with controls_tshirts[2]:
+        page = st.selectbox("Page", range(1, num_batches + 1), key = "page_tshirt")
+
+    grid_tshirts = st.columns(row_size)
+    col = 0
+    batch_tshirts = files_tshirts[(page - 1) * batch_size: page * batch_size]
+    for image in batch_tshirts:
+
+        with grid_tshirts[col]:
+            st.image(f'{directory_tshirts}\{image}', caption='bike')
+            #print(st.session_state.df_models.at[0,'selected'])
+            #st.write(st.session_state.df_models.at[0,'selected'])
+            st.checkbox("SELECT", key=f'tshirt_{image}',
+                        value=False,
+                        on_change=update, args=(image, 'tshirt'))
+
+
+        col = (col + 1) % row_size
+
+
+
+
+
+
+
+
 
     # Create two columns to show cloth and model Image
     col1, col2 = st.columns(2)
@@ -257,83 +347,179 @@ def main_page() -> None:
     # Display the myra_v1 in the column along with keypoints
 
     with col1:
-        # Create an input text box to select a keypoint whose position needs to be changed
+        st.write("SELECTED MODEL")
+        st.image(f'myra-app-main/data/image/{st.session_state.selected_model}.jpg')
 
-        node = st.text_input('Enter node position to change')
-        if node:
-            st.write("You are modifying Node " + node + "   Please click on new position")
-
-        if os.path.exists(TSHIRT_IMAGE_ADDRESS):
-
-            with open('myra-app-main/data/00006_00/cloth_landmark_json.json', 'r') as file:
-
-                json_list = json.load(file)
-                kp_arr = np.array(json_list["long"]) * 250
-                if st.session_state.key_points_tshirt is None:
-                    st.session_state.key_points_tshirt = kp_arr
-
-            image = Image.open(TSHIRT_IMAGE_ADDRESS)
-
-            if not st.session_state.cover_area_pointer_list_tshirt:
-                write_cover_areas_for_pointer_and_labels(kp_arr, image, st.session_state.cover_area_pointer_list_tshirt,
-                                                         st.session_state.cover_area_label_list_tshirt)
-
-            write_points_and_labels_over_image(kp_arr, image)
-
-            ## Streamlit Image coordinate is a spl library in streamlit that captures point coordinates
-            ## of a pixel clicked by mouse over the image
-            value = streamlit_image_coordinates(
-                image,
-                key="pil",
-            )
-
-            if value and (value["x"] != st.session_state.point_selected["x"] and value["y"] !=
-                          st.session_state.point_selected["y"]):
-
-                st.session_state.point_selected = value
-                if node:
-
-                    update_point_over_image(image, node, value, st.session_state.key_points_tshirt,
-                                            st.session_state.cover_area_pointer_list_tshirt,
-                                            st.session_state.cover_area_label_list_tshirt)
-
-
-                else:
-                    st.sidebar.write("Please select a node first")
-
-                # out_image = cloudinary_upload.uploadImage('myra-app-main/upload_images/tshirt.jpg', 'tshirt')
 
     with col2:
-        image = Image.open(TSHIRT_IMAGE_ADDRESS)
-        write_points_and_labels_over_image(st.session_state.key_points_tshirt, image)
-        st.image(image, use_column_width=True)
+        st.write("SELECTED TSHIRT")
+        st.image(f'myra-app-main/data/cloth/{st.session_state.selected_tshirt}.jpg')
 
-        ###################KEYPOINT DETECTOR#########################
+
+    # Create a button
+
+    button_clicked = st.button("Run Diffusion!")
+
+
+    # Check if the button is clicked
+
+    s_pos_json = f'myra-app-main/data/openpose_json/{st.session_state.selected_model}_keypoints.json'
+    c_pos_json = f'myra-app-main/data/cloth-landmark-json/{st.session_state.selected_tshirt}.json'
+
+    IMAGE_ADDRESS = f'myra-app-main/data/image/{st.session_state.selected_model}.jpg'
+    CLOTH_ADDRESS = f'myra-app-main/data/cloth/{st.session_state.selected_tshirt}.jpg'
+    AG_MASK_ADDRESS = f'myra-app-main/data/ag_mask/{st.session_state.selected_model}.png'
+    SKIN_MASK_ADDRESS = f'myra-app-main/data/skin_mask/{st.session_state.selected_model}.png'
+    PARSE_ADDRESS = f'myra-app-main/data/parse/{st.session_state.selected_model}.png'
+    PARSE_AG_ADDRESS = f'myra-app-main/data/parse_ag/{st.session_state.selected_model}.png'
+
+    def generate_random_string(length):
+        # Choose from all uppercase letters and digits
+        characters = string.ascii_uppercase + string.digits
+        # Generate a random string of given length
+        return ''.join(random.choices(characters, k=length))
+
+    image_str = generate_random_string(12)
+    cloth_str = generate_random_string(12)
+    ag_mask_str = generate_random_string(12)
+    skin_mask_str = generate_random_string(12)
+    parse_str = generate_random_string(12)
+    parse_ag_str = generate_random_string(12)
+
+
+
+
+
+
+
+
+
+
+
+
+
+    if button_clicked:
+        st.write("Button clicked!")
+
+        image = cloudinary_upload.uploadImage(IMAGE_ADDRESS, image_str)
+        cloth = cloudinary_upload.uploadImage(CLOTH_ADDRESS, cloth_str)
+        ag_mask = cloudinary_upload.uploadImage(AG_MASK_ADDRESS, ag_mask_str)
+        skin_mask = cloudinary_upload.uploadImage(SKIN_MASK_ADDRESS, skin_mask_str)
+        parse = cloudinary_upload.uploadImage(PARSE_ADDRESS, parse_str)
+        parse_ag = cloudinary_upload.uploadImage(PARSE_AG_ADDRESS, parse_ag_str)
+
+
+        output = replicate.run(
+            "shrikantbhole/diffusion3:bc1f239ec073e1cfe92a13bcba6ce4b863e1852592612dbfabdb8039012e1807",
+            input={
+                "image": image,
+                "cloth": cloth,
+                "ag_mask": ag_mask,
+                "skin_mask": skin_mask,
+                "parse": parse,
+                "parse_ag": parse_ag,
+                "s_pos": get_s_pos_string(s_pos_json),
+                "c_pos": get_c_pos_string(c_pos_json)
+            }
+        )
+
+        print(output)
+        response = requests.get(output)
+        final_image = np.array(Image.open(BytesIO(response.content)))
+        st.image(final_image, caption='final Image', use_column_width=True)
+
+    #############PLOT KEYPOINTS OVER TSHIRT#############
+
     # Create two columns to show cloth and model Image
+    col1, col2 = st.columns(2)
+
+    # Display the myra_v1 in the column along with keypoints
+
+    with col1:
+            # Create an input text box to select a keypoint whose position needs to be changed
+
+
+            node = st.text_input('Enter node position to change')
+            if node:
+                st.write("You are modifying Node " + node + "   Please click on new position")
+
+            if os.path.exists(CLOTH_ADDRESS):
+
+                with open(c_pos_json, 'r') as file:
+
+
+                    json_list = json.load(file)
+                    kp_arr = np.array(json_list["long"]) * 250
+                    st.session_state.key_points_tshirt = kp_arr
+
+                
+                image = Image.open(CLOTH_ADDRESS)
+
+                if not st.session_state.cover_area_pointer_list_tshirt:
+                    write_cover_areas_for_pointer_and_labels(kp_arr, image,
+                                                             st.session_state.cover_area_pointer_list_tshirt,
+                                                             st.session_state.cover_area_label_list_tshirt)
+
+
+                write_points_and_labels_over_image(kp_arr, image)
+
+                ## Streamlit Image coordinate is a spl library in streamlit that captures point coordinates
+                ## of a pixel clicked by mouse over the image
+                value = streamlit_image_coordinates(
+                    image,
+                    key="pil",
+                )
+
+                if value and (value["x"] != st.session_state.point_selected["x"] and value["y"] !=
+                              st.session_state.point_selected["y"]):
+
+                    st.session_state.point_selected = value
+                    if node:
+
+                        update_point_over_image(image, node, value, st.session_state.key_points_tshirt,
+                                                st.session_state.cover_area_pointer_list_tshirt,
+                                                st.session_state.cover_area_label_list_tshirt,CLOTH_ADDRESS)
+
+
+                    else:
+                        st.sidebar.write("Please select a node first")
+
+                    # out_image = cloudinary_upload.uploadImage('myra-app-main/upload_images/image.jpg', 'tshirt')
+
+    with col2:
+            image = Image.open(CLOTH_ADDRESS)
+            write_points_and_labels_over_image( st.session_state.key_points_tshirt, image)
+            st.image(image, use_column_width=True)
+
+            ###################KEYPOINT DETECTOR#########################
+            # Create two columns to show cloth and model Image
     col1, col2 = st.columns(2)
 
     # Display the myra_v1 in the columns
 
     with col1:
 
-        model_image = Image.open(MODEL_IMAGE_ADDRESS)
+        model_image = Image.open(IMAGE_ADDRESS)
         if st.session_state.key_points_model is not None:
             write_points_and_labels_over_image(st.session_state.key_points_model, model_image)
 
         # If Key Point Detector Is called
         key_point_detector = st.button("Run KeyPoint Detector!")
         if key_point_detector:
-            key_points = st.session_state.key_points_tshirt
 
-            p_pos = kg.get_p_pos(key_points)
+
+            key_points = kp_arr
+
+
+            p_pos = get_p_pos(key_points, s_pos_json)
 
             st.session_state.key_points_model = p_pos
 
-            model_image = Image.open(MODEL_IMAGE_ADDRESS)
+            model_image = Image.open(IMAGE_ADDRESS)
             write_points_and_labels_over_image(p_pos, model_image)
             st.session_state.cover_area_pointer_list_model = []
             st.session_state.cover_area_label_list_model = []
-            write_cover_areas_for_pointer_and_labels(p_pos, model_image,
+            write_cover_areas_for_pointer_and_labels(st.session_state.key_points_model, model_image,
                                                      st.session_state.cover_area_pointer_list_model,
                                                      st.session_state.cover_area_label_list_model)
 
@@ -350,21 +536,50 @@ def main_page() -> None:
         if model_value and (model_value["x"] != st.session_state.point_selected["x"] and model_value["y"] !=
                             st.session_state.point_selected["y"]):
 
+
             st.session_state.point_selected = model_value
             if model_node:
+                st.write("heyy")
                 update_point_over_image(model_image, model_node, model_value, st.session_state.key_points_model,
                                         st.session_state.cover_area_pointer_list_model,
-                                        st.session_state.cover_area_label_list_model)
+                                        st.session_state.cover_area_label_list_model,IMAGE_ADDRESS)
+
+
 
             else:
                 st.sidebar.write("Please select a node first")
 
     with col2:
-        model_image = Image.open(MODEL_IMAGE_ADDRESS)
+
+        model_image = Image.open(IMAGE_ADDRESS)
         write_points_and_labels_over_image(st.session_state.key_points_model, model_image)
         st.image(model_image, use_column_width=True)
 
-    ###########PARSE GENERATOR PIPELINE######################
+
+    ###  PARSED IMAGE GENERATOR OUTPUT###
+
+    parse_image_generator = st.button("Generate Parsed Image!")
+    if parse_image_generator:
+        model_parse_ag_full_image = Image.open(PARSE_AG_ADDRESS)
+        p_pos = st.session_state.key_points_model.copy()
+        st.write(f"values earlier:  {p_pos[1][0]}--{p_pos[1][1]}")
+        ### temporary
+
+        p_pos = torch.tensor(p_pos)
+        p_pos[:, 0] = p_pos[:, 0] / 768
+        p_pos[:, 1] = p_pos[:, 1] / 1024
+        p_pos = p_pos.float()
+
+        pg_output, parse13_model_seg = pg.parse_model_seg_image(get_s_pos(s_pos_json), p_pos.clone(), model_parse_ag_full_image)
+        model_parse_gen_image = pg.draw_parse_model_image(pg_output)
+        st.image(model_parse_gen_image)
+        st.session_state.pg_output = pg_output
+        #model_parse_gen_image = pg.draw_parse_model_image(pg_output)
+
+
+
+
+    ###########Tshirt Wrapper PIPELINE######################
 
     tshirt_warp_generator = st.button("Generate Tshirt Warper!")
     if tshirt_warp_generator:
@@ -376,225 +591,28 @@ def main_page() -> None:
 
         # ag_mask = 255 - cv2.imread(AG_MASK_ADDRESS, cv2.IMREAD_GRAYSCALE)
         ag_mask = 255 - np.asarray(Image.open(AG_MASK_ADDRESS))
+
         ag_mask = np.array(transforms.Resize(768)(Image.fromarray(ag_mask)))
-        skin_mask = np.asarray(Image.open(SKIN_MASK_ADDRESS))
+        skin_mask = np.asarray(Image.open(SKIN_MASK_ADDRESS).convert('L'))
+
         skin_mask = np.array(transforms.Resize(768)(Image.fromarray(skin_mask)))
 
-        c_pos, v_pos = get_c_pos()
+        c_pos, v_pos = get_c_pos_warp(c_pos_json)
+
         out_image, out_mask = generate_tps_st(
-            np.asarray(Image.open(MODEL_IMAGE_ADDRESS)),
-            np.asarray(Image.open(TSHIRT_IMAGE_ADDRESS)),
+            np.asarray(Image.open(IMAGE_ADDRESS)),
+            np.asarray(Image.open(CLOTH_ADDRESS)),
             v_pos.float(),
             torch.tensor(p_pos),
             ag_mask,
             skin_mask,
-            np.asarray(Image.open(MODEL_SEG_IMAGE_ADDRESS))
+            st.session_state.pg_output
 
         )
         st.image(Image.fromarray(out_image))
         Image.fromarray(out_image).save('myra-app-main/predict/images/out_image.jpg')
         Image.fromarray(out_mask).save('myra-app-main/predict/images/out_mask.jpg')
         # st.image(Image.fromarray(out_mask))
-
-    #############DIFFUSION INFERENCE PIPELINE#########################
-    model_diffuse_generator = st.button("Generate Diffused Tshirt!")
-    if model_diffuse_generator:
-        # model_seg_image, ag_mask, tshirt_mask = rb.predict_seg_img(MODEL_IMAGE_ADDRESS)
-        model_seg_image = Image.open(MODEL_SEG_IMAGE_ADDRESS)
-        model_parse_ag_full_image = Image.open(MODEL_PARSE_AG_FULL)
-        p_pos = st.session_state.key_points_model.copy()
-        p_pos = torch.tensor(p_pos)
-        p_pos[:, 0] = p_pos[:, 0] / 768
-        p_pos[:, 1] = p_pos[:, 1] / 1024
-        p_pos = p_pos.float()
-        pg_output, parse13_model_seg = pg.parse_model_seg_image(get_s_pos(), p_pos.clone(), model_parse_ag_full_image)
-        model_parse_gen_image = pg.draw_parse_model_image(pg_output)
-        model_parse_gen_image.save('myra-app-main/predict/images/model_parse_gen_image.png')
-
-
-    col1, col2, col3 = st.columns(3)
-    # Display the myra_v1 in the columns
-    with col1:
-        st.image(OUT_IMAGE_ADDRESS, caption='Output Image', use_column_width=True)
-        out_image = cloudinary_upload.uploadImage(OUT_IMAGE_ADDRESS, 'out_image_4')
-        print("out_image", out_image)
-
-    with col2:
-        st.image(OUT_MASK_ADDRESS, caption='Mask Image', use_column_width=True)
-        # out_image = np.array(Image.open(OUT_IMAGE_ADDRESS))
-        out_mask = cloudinary_upload.uploadImage(OUT_MASK_ADDRESS, 'out_mask_4')
-        print("Out mask", out_mask)
-
-    with col3:
-
-        #mono_color_image = np.asarray(Image.open("myra-app-main/data/00006_00/paired_full_parse.png"))
-        #color_image = np.repeat(mono_color_image[:,:,np.newaxis], 3, axis = 2)
-        #color_image[:,:,0] = mono_color_image
-        #color_image[:, :, 1] = mono_color_image
-        #color_image[:, :, 2] = mono_color_image
-        #print(color_image.shape)
-        #Image.fromarray(color_image).save('3c_parse.png')
-
-
-        pg_output = cloudinary_upload.uploadImage(MODEL_PARSE_GEN_IMAGE, 'pg_output_9')
-        st.image(MODEL_PARSE_GEN_IMAGE, caption='PG Output Image', use_column_width=True)
-
-    # Create a button
-    button_clicked = st.button("Run Diffusion!")
-
-    # Check if the button is clicked
-    if button_clicked:
-        st.write("Button clicked!")
-        output = replicate.run(
-            "shrikantbhole/diffusion:de6b9511fa9e4e22c8ae85e090ba5f1343e73e0ff581fdb19481dd1e12837ba0",
-            input={
-                "out_mask_file": out_mask,
-                "out_image_file": out_image,
-                "pg_output_file": pg_output,
-                "out_image_file_2": "https://drive.google.com/uc?id=19NsxtXB4LIA_BlMZih4f17QdBShvNfEf"
-            }
-        )
-
-        print(output)
-        response = requests.get(output)
-        final_image = np.array(Image.open(BytesIO(response.content)))
-        st.image(final_image, caption='final Image', use_column_width=True)
-
-        st.write(
-            "<span style='font-family: Roboto, sans-serif;'>At Myra, our vision is to inject a sense of magic and creativity into e-commerce fashion "
-            "photoshoots by leveraging AI-generated models. </span>",
-            unsafe_allow_html=True)
-        st.write(" ")
-
-        st.write(
-            "<span style='font-family: Roboto, sans-serif;'> Here's the concept: We begin with an image of a mannequin showcasing the fashion product under ideal "
-            "lighting conditions. This image, along with your prompt detailing the desired attributes of the final model, is fed into our Myra AI system. "
-            "From there, Myra AI swiftly crafts the perfect image of real looking model tailored to your specifications in no time.</span>",
-            unsafe_allow_html=True)
-
-        st.write(
-            "<span style='font-family: Roboto,sans-serif'>We have listed below few examples of results obtained from Myra AI .The mannequin myra_v1 below were retrieved from the internet from different sites. "
-            "pinterest, shutterstock, istockphoto. "
-            " Myra AI could "
-            "fit AI models within this dress, maintaining the dress outline, tone, and appearance.</span>",
-            unsafe_allow_html=True)
-
-        st.write("")
-        M1 = image_select(
-            label="WHITE CREAM COLOUR FULL TSHIRT ON BLUE JEANS (https://www.pinterest.com/pin/30891947430775019)",
-            images=[
-                "myra-app-main/myra_v1/M1/input.png", "myra-app-main/myra_v1/M1/2-2.png",
-                "myra-app-main/myra_v1/M1/2-2.png", "myra-app-main/myra_v1/M1/3-5.png",
-                "myra-app-main/myra_v1/M1/4-3.png",
-                "myra-app-main/myra_v1/M1/5-3.png"
-
-            ],
-            captions=["Input Image to Myra AI fetched  from pinterest website",
-                      "Charismatic Young Man, Radiating Confidence and Charm, Captured in Stunning 8K Resolution.",
-                      "Smart, Handsome Male Model,Bold Beard, His Eyes Piercing with Clarity, Embracing the Cinematic Aura ",
-                      "Striking Portrait of a Dynamic and Attractive Male Model, Bold Expressions , Canon's 8K Resolution",
-                      "A cute spotless perfect looking model, Unleash the Beauty, Cinematic Touch of Canon Photography",
-                      "Create a Masterpiece: Generate an Image of a Smart and Dynamic Male Model, His Expressions Bold",
-                      ],
-            use_container_width=False
-        )
-        st.write(
-            "<span style='font-family: Roboto,sans-serif'>PLEASE CLICK ON ANY ABOVE IMAGE FOR A CLOSER LOOK.</span>",
-            unsafe_allow_html=True)
-        if M1 != "myra_v1/M1/input.png":
-            # Load the myra_v1
-            image1 = Image.open("myra-app-main/myra_v1/M1/input.png")
-            image2 = Image.open(M1)
-
-            # Create two columns for displaying myra_v1 side by side
-            col1, col2 = st.columns(2)
-
-            # Display the myra_v1 in the columns
-            with col1:
-                st.image(image1, caption='Input Image', use_column_width=True)
-
-            with col2:
-                st.image(image2, caption='Output Image', use_column_width=True)
-
-        st.write("")
-        st.write("")
-        st.write("")
-        M6 = image_select(
-            label="RED COLLAR DOTTED TSHIRT ON BLUE JEANS (https://www.shutterstock.com/image-photo/fulllength-male-mannequin-dressed-tshirt-jeans-1067987750)",
-            images=[
-                "myra-app-main/myra_v1/M6/input.png", "myra-app-main/myra_v1/M6/1-4.png",
-                "myra-app-main/myra_v1/M6/2.png", "myra-app-main/myra_v1/M6/3-5.png",
-                "myra-app-main/myra_v1/M6/4-3.png",
-                "myra-app-main/myra_v1/M6/5-2.png"
-
-            ],
-            captions=["Input image of Mannequin with tshirt obtained from shutterstock website",
-                      "Attractive Young Man, His Eyes Reflecting Clarity and Confidence, Transformed into Cinematic Splendor ",
-                      "An artistic model, more idealistic and perfectionist, AI magic, Enshrined in the Timeless Beauty ",
-                      "A real looking smiling model, natural model photoshoots, Radiating Youthful Energy and Charm, 8k",
-                      "Dynamic and Attractive Male Model, His Bold Expressions and Charismatic Presence Transcending the Screen,",
-                      "Smart and Handsome Male Model, Bold beard, picture perfect, His Eyes Sparkling with Clarity and Intelligence",
-                      ],
-            use_container_width=False
-        )
-        st.write(
-            "<span style='font-family: Roboto,sans-serif'>PLEASE CLICK ON ANY ABOVE IMAGE FOR A CLOSER LOOK.</span>",
-            unsafe_allow_html=True)
-        if M6 != "myra_v1/M6/input.png":
-            # Load the myra_v1
-            image1 = Image.open("myra-app-main/myra_v1/M6/input.png")
-            image2 = Image.open(M6)
-
-            # Create two columns for displaying myra_v1 side by side
-            col1, col2 = st.columns(2)
-
-            # Display the myra_v1 in the columns
-            with col1:
-                st.image(image1, caption='Input Image', use_column_width=True)
-
-            with col2:
-                st.image(image2, caption='Output Image', use_column_width=True)
-
-        st.write("")
-        st.write("")
-        st.write("")
-        M7 = image_select(
-            label="White half sleeves tshirt on blue jeans (https://www.istockphoto.com/photo/full-length-male-mannequin-gm1289535860-385180516)",
-            images=[
-                "myra-app-main/myra_v1/M7/input.png", "myra-app-main/myra_v1/M7/1-2.png",
-                "myra-app-main/myra_v1/M7/2-2.png", "myra-app-main/myra_v1/M7/3-2.png",
-                "myra-app-main/myra_v1/M7/4-3.png",
-
-            ],
-            captions=["Input image of Mannequin with tshirt obtained from istockphoto  website",
-                      "Bring Life to the Lens, real looking, natural features,Striking Portrait of a Dynamic and Attractive Male Mode",
-                      "Artistic model, AI perfect complexion and features, masterpiece,  his Eyes Sparkling with Clarity and Intelligence",
-                      "Handsome bearded model, Craft an Iconic Image,Cinematic Touch of Canon Photography, Bold Expressions ",
-                      "A real looking smiling model, natural model photoshoot, Aura Radiating Youthful Energy and Charm"
-                      ],
-            use_container_width=False
-        )
-        st.write(
-            "<span style='font-family: Roboto,sans-serif'>PLEASE CLICK ON ANY ABOVE IMAGE FOR A CLOSER LOOK.</span>",
-            unsafe_allow_html=True)
-        if M7 != "myra_v1/M7/input.png":
-            # Load the myra_v1
-            image1 = Image.open("myra-app-main/myra_v1/M7/input.png")
-            image2 = Image.open(M7)
-
-            # Create two columns for displaying myra_v1 side by side
-            col1, col2 = st.columns(2)
-
-            # Display the myra_v1 in the columns
-            with col1:
-                st.image(image1, caption='Input Image', use_column_width=True)
-
-            with col2:
-                st.image(image2, caption='Output Image', use_column_width=True)
-
-        st.write("")
-        st.write("")
-        st.write("")
 
 
 def main():

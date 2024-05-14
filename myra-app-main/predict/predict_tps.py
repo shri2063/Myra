@@ -8,7 +8,8 @@ from torchvision.transforms import ToTensor,ToPILImage
 import numpy as np
 import pyclipper
 from torchvision import transforms
-
+from PIL import Image
+import streamlit as st
 
 
 
@@ -151,8 +152,8 @@ def draw_part(group_id, ten_source, ten_target, ten_source_center, ten_target_ce
 def paste_cloth(mask, image, tps_image, l_mask, r_mask, parse_13):
     out_image = image.copy()
     out_mask = mask.copy()
-    l_mask[(parse_13[3]).numpy() == 0] = 0
-    r_mask[(parse_13[3]).numpy() == 0] = 0
+    #l_mask[(parse_13[3]).numpy() == 0] = 0
+    #r_mask[(parse_13[3]).numpy() == 0] = 0
 
     out_mask[l_mask==255] = 0
     out_mask[r_mask==255] = 255
@@ -218,16 +219,19 @@ def generate_repaint(image, cloth, source, target, ag_mask, skin_mask, parse_13)
     out_image = image.copy()
     ## Masking tshirt in output image , out_image = (h,w,3), ag_mask = (h,w)
     out_image[ag_mask == 0, :] = 0
+    st.image(out_image)
     # Paste Skin
     new_skin_mask = skin_mask.copy()
     new_skin_mask[(parse_13[5] + parse_13[6] + parse_13[11]).numpy() == 0] = 0
-    #plt.title("New Skin Mask")
-    #plt.imshow(new_skin_mask, cmap = 'gray')
-    #plt.show()
-
-    # Tshirt mask with skin
+    plt.title("New Skin Mask")
+    plt.imshow(new_skin_mask, cmap = 'gray')
+    plt.show()
+    plt.savefig('new_skin_mask.png', bbox_inches='tight')
     out_mask[new_skin_mask == 255] = 255
     out_image[new_skin_mask == 255, :] = image[new_skin_mask == 255, :]
+    # Tshirt mask with skin
+    #out_mask[new_skin_mask == 255] = 255
+    #out_image[new_skin_mask == 255, :] = image[new_skin_mask == 255, :]
 
     # paste cloth
     group_backbone = [4, 3, 2, 1, 0, 5, 14, 15, 16, 17, 18, 19, 20, 21, 22, 31]
@@ -247,71 +251,101 @@ def generate_repaint(image, cloth, source, target, ag_mask, skin_mask, parse_13)
     # Whole Points TPS
     im_backbone, l_mask_backbone, s_mask_backbone, r_mask_backbone = draw_part(
         group_backbone, ten_source, ten_target, ten_source_center, ten_target_center, ten_cloth)
+
     im_left_up, l_mask_left_up, s_mask_left_up, r_mask_left_up = draw_part(
          group_left_up, ten_source, ten_target, ten_source_center, ten_target_center, ten_cloth)
+
     im_right_up, l_mask_right_up, s_mask_right_up, r_mask_right_up = draw_part(
          group_right_up, ten_source, ten_target, ten_source_center, ten_target_center, ten_cloth)
+
     im_left_low, l_mask_left_low, s_mask_left_low, r_mask_left_low = draw_part(
          group_left_low, ten_source, ten_target, ten_source_center, ten_target_center, ten_cloth)
+
     im_right_low, l_mask_right_low, s_mask_right_low, r_mask_right_low = draw_part(
          group_right_low, ten_source, ten_target, ten_source_center, ten_target_center, ten_cloth)
 
     if r_mask_backbone.sum() / s_mask_backbone.sum() < 0.9:
         r_mask_backbone = s_mask_backbone
-
+    st.write("Out Image before pasting any cloth")
+    st.image(out_image)
+    st.write("im_backbone before pasting any cloth")
+    st.image(im_backbone)
+    st.write("l_mask_backbone before pasting any cloth")
+    st.image(l_mask_backbone.astype(np.uint8))
     out_mask, out_image = paste_cloth(out_mask, out_image, im_backbone, l_mask_backbone, r_mask_backbone, parse_13)
-    #plt.title("Backbone Added")
-    #plt.imshow(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))
-    #plt.show()
+    plt.title("Backbone Added")
+    plt.imshow(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))
+    plt.show()
+    st.image(out_image)
+
+    plt.savefig('output_image_1.png', bbox_inches='tight')
     out_mask, out_image = paste_cloth(out_mask, out_image, im_left_up, l_mask_left_up, r_mask_left_up, parse_13)
-    #plt.title("Left Upper")
-    #plt.imshow(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))
-    #plt.show()
+    plt.title("Left Upper")
+    plt.imshow(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))
+    plt.show()
+    plt.savefig('output_image_2.png', bbox_inches='tight')
     out_mask, out_image = paste_cloth(out_mask, out_image, im_left_low, l_mask_left_low, r_mask_left_low, parse_13)
-    #plt.title("Left Lower")
-    #plt.imshow(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))
-    #plt.show()
+    plt.title("Left Lower")
+    plt.imshow(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))
+    plt.show()
     out_mask, out_image = paste_cloth(out_mask, out_image, im_right_up, l_mask_right_up, r_mask_right_up, parse_13)
-    #plt.title("right upper")
-    #plt.imshow(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))
-    #plt.show()
+    plt.title("right upper")
+    plt.imshow(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))
+    plt.show()
     out_mask, out_image = paste_cloth(out_mask, out_image, im_right_low, l_mask_right_low, r_mask_right_low, parse_13)
-    #plt.title("right lower")
-    #plt.imshow(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))
-    #plt.show()
+    plt.title("right lower")
+    plt.imshow(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))
+    plt.show()
+
 
     return out_image, out_mask
 
 def gen_model_seg_image_hot_encoder(model_seg_image: np.ndarray):
 
 
-    # Shorter side becomes 768 and larger side aligns based upon aspect ratio
-    #im_parse_pil = transforms.Resize(768)(model_seg_Image)
-    #im_parse_pil = np.asarray(im_parse_pil)
-
     # None adds dimesnion to first index
     if model_seg_image.ndim > 2:
-        im_parse_pil = model_seg_image[:, :, 0]
-    unique_values = np.unique(model_seg_image)
-    unique_values.sort()
-    print(("unique values", unique_values))
-    mapping = {label: i for i, label in enumerate(unique_values)}
-    model_seg_image = np.vectorize(mapping.get)(model_seg_image)
-    # None adds dimension to first index
+        model_seg_image = model_seg_image[:, :, 0]
+    # unique_values = np.unique(im_parse_pil)
+    # unique_values.sort()
+    # print(("unique values", unique_values))
+    # mapping = {label:i for i,label in enumerate(unique_values)}
+    # im_parse_pil = np.vectorize(mapping.get)(im_parse_pil)
+
     parse = torch.from_numpy(np.array(model_seg_image)[None]).long()
 
     parse_13 = torch.FloatTensor(13, 1024, 768).zero_()
     # Basically creates one hot encoding representation where eqach pixel value in the original image is represented as a one-hot vector along the zeroth dimension of parse_13
     parse_13 = parse_13.scatter_(0, parse, 1.0)
-    parse_13 = parse_13[None]
-    print(parse_13.shape)
-    return parse_13.squeeze()
+    return parse_13
 
-def generate_tps_st(image: np.ndarray, cloth: np.ndarray, source: torch.Tensor, target: torch.Tensor, ag_mask: np.array, skin_mask: np.array, model_seg_image: np.ndarray):
-    print("Hihihih")
-    parse_13 = gen_model_seg_image_hot_encoder(model_seg_image)
-    print("parse 13", parse_13.shape)
-    out_image, out_mask = generate_repaint(image, cloth, source, target, ag_mask, skin_mask, parse_13)
+def pred_to_onehot(prediction):
+
+    size = prediction.shape
+
+    prediction_max = torch.argmax(prediction, dim=1)
+    oneHot_size = (size[0], 13, size[2], size[3])
+
+    pred_onehot = torch.FloatTensor(torch.Size(oneHot_size)).zero_()
+
+    pred_onehot = pred_onehot.scatter_(1, prediction_max.unsqueeze(1).data.long(), 1.0)
+    return pred_onehot
+def generate_tps_st(image: np.ndarray, cloth: np.ndarray, source: torch.Tensor, target: torch.Tensor, ag_mask: np.array, skin_mask: np.array, pg_output: np.ndarray):
+
+    parse_13 = pred_to_onehot(pg_output)
+
+    #print("parse 13", parse_13.shape)
+    #print("image ", image.shape)
+    #print("cloth ", cloth.shape)
+    #print("source ", source.shape)
+    #print("target ", target.shape)
+    #print("ag_mask ", ag_mask.shape)
+    #print("skin_mask ", skin_mask.shape)
+    #print("parse_13 ", parse_13.shape)
+    out_image, out_mask = generate_repaint(image, cloth, source, target, ag_mask, skin_mask, parse_13[0])
+
+
+
     return out_image,out_mask
 
 def generate_tps():
@@ -328,6 +362,13 @@ def generate_tps():
     ## (32,2) key pointers of Target Tshirt
     target = result['p_pos'].float()
 
+    print("image ", image.shape)
+    print("cloth ", cloth.shape)
+    print("source ", source.shape)
+    print("target ", target.shape)
+    print("ag_mask ", ag_mask.shape)
+    print("skin_mask ", skin_mask.shape)
+    print("parse_13 ", parse_13.shape)
     out_image, out_mask = generate_repaint(image, cloth, source, target, ag_mask, skin_mask, parse_13)
     return out_image, out_mask
 
