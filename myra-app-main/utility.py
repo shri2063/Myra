@@ -9,6 +9,121 @@ from predict_pos_keypoints import adj_mx_from_edges,edges_c,edges_s,GCN_2
 sys.path.append('myra-app-main/datasets')
 import streamlit as st
 import matplotlib.pyplot as plt
+from os import listdir
+import pandas as pd
+import string
+import random
+#### CATALOG FUNCTIONS ###########
+directory_models = r'myra-app-main/data/image'
+directory_tshirts = r'myra-app-main/data/cloth'
+def initialize(type):
+    if type == "model":
+        if 'df_models' not in st.session_state:
+            files = listdir(directory_models)
+            df_models = pd.DataFrame({'file': files,
+                                      'selected': [False] * len(files),
+                                      'label': [''] * len(files)})
+            df_models.set_index('file', inplace=True)
+            st.session_state.df_models = df_models
+            return df_models
+    elif type == "tshirt":
+        if 'df_tshirts' not in st.session_state:
+            files = listdir(directory_tshirts)
+            df_tshirts = pd.DataFrame({'file': files,
+                                       'selected': [False] * len(files),
+                                       'label': [''] * len(files)})
+            df_tshirts.set_index('file', inplace=True)
+            st.session_state.df_tshirts = df_tshirts
+            return df_tshirts
+
+
+
+
+
+####### KeyPoints marker functions##########
+def update_point_over_image(edited_image: Image, node: str, value: dict, kp_arr: np.ndarray,
+                            cover_area_pointer_list: list, cover_area_label_list: list,address:str):
+    st.write("heyy")
+    point_size = 5
+    label_text = 'Point'
+    draw = ImageDraw.Draw(edited_image)
+    font_size = 16
+    font = ImageFont.truetype("arial.ttf", font_size)
+    text_width, text_height = 5, 5
+
+    node = int(node)
+    st.write(f"values earlier: Node: {node}--- {kp_arr[node][0]}--{kp_arr[node][1]}")
+    kp_arr[node][0] = value["x"]
+    kp_arr[node][1] = value["y"]
+    st.write(f"values after {kp_arr[node][0]}--{kp_arr[node][1]}")
+
+    original_image = Image.open(address)
+    image_crop = original_image.crop(cover_area_label_list[node])
+    edited_image.paste(image_crop, cover_area_label_list[node])
+    image_crop = original_image.crop(cover_area_pointer_list[node])
+    edited_image.paste(image_crop, cover_area_pointer_list[node])
+    draw.ellipse((kp_arr[node][0] - point_size,
+                  kp_arr[node][1] - point_size,
+                  kp_arr[node][0] + point_size,
+                  kp_arr[node][1] + point_size),
+                 fill='red')
+    cover_area_pointer = (int(kp_arr[node][0]) - int(point_size),
+                          int(kp_arr[node][1]) - int(point_size),
+                          int(kp_arr[node][0]) + int(point_size) + 5,
+                          int(kp_arr[node][1]) + int(point_size) + 5)
+    cover_area_pointer_list[node] = cover_area_pointer
+    text_x = kp_arr[node][0] + point_size + 5  # Adjust for spacing
+    text_y = kp_arr[node][1] - text_height // 2
+    cover_area_label = (int(kp_arr[node][0] + point_size + 5),
+                        int(kp_arr[node][1] - text_height // 2),
+                        int(kp_arr[node][0]) + int(point_size) + 5 + int(
+                            text_width),
+                        int(kp_arr[node][1]) - text_height // 2 + int(
+                            text_height))
+    cover_area_label_list[node] = cover_area_label
+    draw.text((text_x, text_y), str(node), fill='red', font=font)
+
+def write_cover_areas_for_pointer_and_labels(arr: np.ndarray, image: Image, cover_area_pointer_list: list,
+                                             cover_area_label_list: list):
+    point_size = 5
+    label_text = 'Point'
+
+    draw = ImageDraw.Draw(image)
+    font_size = 16
+    font = ImageFont.truetype("arial.ttf", font_size)
+
+    text_width, text_height = 5, 5
+
+    # Define the font size and font
+    for id, point in enumerate(arr):
+        cover_area_pointer = (int(point[0]) - int(point_size), int(point[1]) - int(point_size),
+                              int(point[0]) + int(point_size) + 5, int(point[1]) + int(point_size) + 5)
+        cover_area_pointer_list.append(cover_area_pointer)
+
+        cover_area_label = (int(point[0] + point_size + 5), int(point[1] - text_height // 2),
+                            int(point[0]) + int(point_size) + 5 + int(text_width),
+                            int(point[1]) - text_height // 2 + int(text_height))
+
+        cover_area_label_list.append(cover_area_label)
+
+
+def write_points_and_labels_over_image(arr: np.ndarray, image: Image) -> Image:
+    point_size = 5
+    label_text = 'Point'
+    draw = ImageDraw.Draw(image)
+    font_size = 16
+    font = ImageFont.truetype("arial.ttf", font_size)
+    text_width, text_height = 5, 5
+    point_color = 'green'
+
+    for id, point in enumerate(arr):
+        draw.ellipse(
+            (point[0] - point_size, point[1] - point_size, point[0] + point_size, point[1] + point_size),
+            fill=point_color)
+        text_x = point[0] + point_size + 5  # Adjust for spacing
+        text_y = point[1] - text_height // 2
+        draw.text((text_x, text_y), str(id), fill='green', font=font)
+    return image
 
 
 def get_s_pos_string(s_pos_json) -> str:
@@ -27,28 +142,24 @@ def get_c_pos_string(c_pos_json) -> str:
             c_pos = base64.b64encode(c_pos).decode('utf-8')
             return c_pos
 
-def get_c_pos_warp(c_pos_json) -> tuple:
+def get_c_pos_warp(c_pos) -> tuple:
 
-    with open(c_pos_json, 'r') as f:
-        c_pos = json.load(f)
+    ck_idx = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
+                  29,30, 31, 32]
+    c_pos = c_pos[ck_idx, :]/250
 
-        ck_idx = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
-                  29,
-                  30, 31, 32]
-        c_pos = np.array(c_pos["long"])[ck_idx, :]
+    c_pos[:, 0] = c_pos[:, 0] / 3
+    c_pos[:, 1] = c_pos[:, 1] / 4
+    v_pos = torch.tensor(c_pos)
 
-        c_pos[:, 0] = c_pos[:, 0] / 3
-        c_pos[:, 1] = c_pos[:, 1] / 4
-        v_pos = torch.tensor(c_pos)
+    c_w = (c_pos[2][0] + c_pos[18][0]) / 2
+    c_h = (c_pos[2][1] + c_pos[18][1]) / 2
 
-        c_w = (c_pos[2][0] + c_pos[18][0]) / 2
-        c_h = (c_pos[2][1] + c_pos[18][1]) / 2
+    c_pos[:, 0] = c_pos[:, 0] - c_w
+    c_pos[:, 1] = c_pos[:, 1] - c_h
 
-        c_pos[:, 0] = c_pos[:, 0] - c_w
-        c_pos[:, 1] = c_pos[:, 1] - c_h
-
-        c_pos = torch.tensor(c_pos)
-        return c_pos, v_pos
+    c_pos = torch.tensor(c_pos)
+    return c_pos, v_pos
 
 
 
@@ -104,3 +215,9 @@ def get_p_pos(key_points: torch.Tensor,s_pos_address) -> np.ndarray:
 
     #print("p pos", p_pos.shape)
     return p_pos
+
+def generate_random_string(length):
+        # Choose from all uppercase letters and digits
+        characters = string.ascii_uppercase + string.digits
+        # Generate a random string of given length
+        return ''.join(random.choices(characters, k=length))
