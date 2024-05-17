@@ -43,7 +43,7 @@ def initialize(type):
 ####### KeyPoints marker functions##########
 def update_point_over_image(edited_image: Image, node: str, value: dict, kp_arr: np.ndarray,
                             cover_area_pointer_list: list, cover_area_label_list: list,address:str):
-    st.write("heyy")
+
     point_size = 5
     label_text = 'Point'
     draw = ImageDraw.Draw(edited_image)
@@ -52,36 +52,52 @@ def update_point_over_image(edited_image: Image, node: str, value: dict, kp_arr:
     text_width, text_height = 5, 5
 
     node = int(node)
-    st.write(f"values earlier: Node: {node}--- {kp_arr[node][0]}--{kp_arr[node][1]}")
-    kp_arr[node][0] = value["x"]
-    kp_arr[node][1] = value["y"]
-    st.write(f"values after {kp_arr[node][0]}--{kp_arr[node][1]}")
-
     original_image = Image.open(address)
-    image_crop = original_image.crop(cover_area_label_list[node])
-    edited_image.paste(image_crop, cover_area_label_list[node])
-    image_crop = original_image.crop(cover_area_pointer_list[node])
-    edited_image.paste(image_crop, cover_area_pointer_list[node])
+    #st.write(f"values earlier: Node: {node}--- {kp_arr[node][0]}--{kp_arr[node][1]}")
+    if node < len(kp_arr):
+        kp_arr[node][0] = value["x"]
+        kp_arr[node][1] = value["y"]
+        st.write(f"values after {kp_arr[node][0]}--{kp_arr[node][1]}")
+        image_crop = original_image.crop(cover_area_label_list[node])
+        edited_image.paste(image_crop, cover_area_label_list[node])
+        image_crop = original_image.crop(cover_area_pointer_list[node])
+        edited_image.paste(image_crop, cover_area_pointer_list[node])
+    else:
+        st.write(kp_arr.shape)
+        value_to_append = np.array([value["x"], value["y"]], dtype = np.float32)
+        kp_arr = np.append(kp_arr, [value_to_append], axis = 0)
+
+
+
     draw.ellipse((kp_arr[node][0] - point_size,
                   kp_arr[node][1] - point_size,
                   kp_arr[node][0] + point_size,
                   kp_arr[node][1] + point_size),
                  fill='red')
+
     cover_area_pointer = (int(kp_arr[node][0]) - int(point_size),
                           int(kp_arr[node][1]) - int(point_size),
                           int(kp_arr[node][0]) + int(point_size) + 5,
                           int(kp_arr[node][1]) + int(point_size) + 5)
-    cover_area_pointer_list[node] = cover_area_pointer
-    text_x = kp_arr[node][0] + point_size + 5  # Adjust for spacing
-    text_y = kp_arr[node][1] - text_height // 2
     cover_area_label = (int(kp_arr[node][0] + point_size + 5),
                         int(kp_arr[node][1] - text_height // 2),
                         int(kp_arr[node][0]) + int(point_size) + 5 + int(
                             text_width),
                         int(kp_arr[node][1]) - text_height // 2 + int(
                             text_height))
-    cover_area_label_list[node] = cover_area_label
+    if node < len(cover_area_pointer_list):
+        cover_area_pointer_list[node] = cover_area_pointer
+        cover_area_label_list[node] = cover_area_label
+    else:
+
+        cover_area_pointer_list = np.append(cover_area_pointer_list, cover_area_pointer)
+        cover_area_label_list = np.append(cover_area_label_list,cover_area_label)
+
+    text_x = kp_arr[node][0] + point_size + 5  # Adjust for spacing
+    text_y = kp_arr[node][1] - text_height // 2
+    st.write(text_y, text_x)
     draw.text((text_x, text_y), str(node), fill='red', font=font)
+    st.image(edited_image)
 
 def write_cover_areas_for_pointer_and_labels(arr: np.ndarray, image: Image, cover_area_pointer_list: list,
                                              cover_area_label_list: list):

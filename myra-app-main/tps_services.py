@@ -146,8 +146,8 @@ def paste_cloth(mask, image, tps_image, l_mask, r_mask, parse_13):
     return out_mask, out_image
 
 
-def generate_warp_images(image: np.ndarray, cloth: np.ndarray, source: torch.Tensor, target: torch.Tensor,
-                         ag_mask: np.array, skin_mask: np.array, pg_output: np.ndarray):
+def generate_and_save_warp_images(image: np.ndarray, cloth: np.ndarray, source: torch.Tensor, target: torch.Tensor,
+                                  ag_mask: np.array, skin_mask: np.array, pg_output: np.ndarray):
 
     parse_13 = pred_to_onehot(pg_output)[0]
 
@@ -157,7 +157,7 @@ def generate_warp_images(image: np.ndarray, cloth: np.ndarray, source: torch.Ten
     out_image = image.copy()
     ## Masking tshirt in output image , out_image = (h,w,3), ag_mask = (h,w)
     out_image[ag_mask == 0, :] = 0
-    st.image(out_image)
+    #st.image(out_image)
     # Paste Skin
     new_skin_mask = skin_mask.copy()
     st.write("hiii")
@@ -201,11 +201,12 @@ def generate_warp_images(image: np.ndarray, cloth: np.ndarray, source: torch.Ten
     im_right_low = warp_part(
         group_right_low, ten_source, ten_target, ten_source_center, ten_target_center, ten_cloth)
 
-    st.image(im_backbone)
-    st.image(im_left_up)
-    st.image(im_right_up)
-    st.image(im_left_low)
-    st.image(im_right_low)
+    Image.fromarray(im_backbone).save('myra-app-main/predict/im_backbone.jpg')
+    Image.fromarray(im_left_up).save('myra-app-main/predict/im_left_up.jpg')
+    Image.fromarray(im_right_up).save('myra-app-main/predict/im_right_up.jpg')
+    Image.fromarray(im_left_low).save('myra-app-main/predict/im_left_low.jpg')
+    Image.fromarray(im_right_low).save('myra-app-main/predict/im_right_low.jpg')
+
 
 
     return im_backbone, im_left_up, im_right_up, im_left_low, im_right_low
@@ -223,4 +224,4 @@ def generate_tps_st(image: np.ndarray, cloth: np.ndarray, source: torch.Tensor, 
     # print("ag_mask ", ag_mask.shape)
     # print("skin_mask ", skin_mask.shape)
     # print("parse_13 ", parse_13.shape)
-    out_image, out_mask = generate_warp_images(image, cloth, source, target, ag_mask, skin_mask, parse_13[0])
+    out_image, out_mask = generate_and_save_warp_images(image, cloth, source, target, ag_mask, skin_mask, parse_13[0])

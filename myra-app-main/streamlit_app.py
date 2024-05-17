@@ -18,6 +18,7 @@ from predict import predict_parse_seg_image as pg
 from predict import predict_pos_keypoints as kg
 from dict import *
 from tps_services import *
+
 ### Session State variables
 if 'cover_area_pointer_list_tshirt' not in st.session_state:
     st.session_state.cover_area_pointer_list_tshirt = []
@@ -27,6 +28,10 @@ if 'cover_area_pointer_list_model' not in st.session_state:
     st.session_state.cover_area_pointer_list_model = []
 if 'cover_area_label_list_model' not in st.session_state:
     st.session_state.cover_area_label_list_model = []
+if 'cover_area_pointer_list_cutout' not in st.session_state:
+    st.session_state.cover_area_pointer_list_cutout = []
+if 'cover_area_label_list_cutout' not in st.session_state:
+    st.session_state.cover_area_label_list_cutout = []
 if 'key_points_tshirt' not in st.session_state:
     st.session_state.key_points_tshirt = None
 if 'key_points_tshirt_original' not in st.session_state:
@@ -42,7 +47,9 @@ if 'point_selected' not in st.session_state:
 if 'selected_model' not in st.session_state:
     st.session_state.selected_model = '00035_00'
 if 'selected_tshirt' not in st.session_state:
-    st.session_state.selected_tshirt = '00034_00'
+    st.session_state.selected_tshirt = '00067_00'
+if 'selected_cutout' not in st.session_state:
+    st.session_state.selected_cutout = None
 
 
 def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
@@ -64,6 +71,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
             st.write(f'Tshirt: {image[:8]}')
             st.session_state.selected_tshirt = image[:8]
             st.session_state.key_points_tshirt_original = None
+
     ### Select a Model
     st.write("SELECT A MODEL")
     with controls_models[0]:
@@ -204,12 +212,6 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
                     st.session_state.key_points_tshirt_original = kp_arr.copy()
 
             image = Image.open(CLOTH_ADDRESS)
-
-            if not st.session_state.cover_area_pointer_list_tshirt:
-                write_cover_areas_for_pointer_and_labels(st.session_state.key_points_tshirt_original, image,
-                                                         st.session_state.cover_area_pointer_list_tshirt,
-                                                         st.session_state.cover_area_label_list_tshirt)
-
             write_points_and_labels_over_image(st.session_state.key_points_tshirt_original, image)
 
             ## Streamlit Image coordinate is a spl library in streamlit that captures point coordinates
@@ -224,10 +226,9 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
                 st.session_state.point_selected = value
                 if node:
+                    st.session_state.key_points_tshirt[int(node)][0] = value["x"]
+                    st.session_state.key_points_tshirt[int(node)][1] = value["y"]
 
-                    update_point_over_image(image, node, value, st.session_state.key_points_tshirt,
-                                            st.session_state.cover_area_pointer_list_tshirt,
-                                            st.session_state.cover_area_label_list_tshirt, CLOTH_ADDRESS)
 
 
                 else:
@@ -264,11 +265,8 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
             st.session_state.key_points_model_original = p_pos.copy()
             model_image = Image.open(IMAGE_ADDRESS)
             write_points_and_labels_over_image(p_pos, model_image)
-            st.session_state.cover_area_pointer_list_model = []
-            st.session_state.cover_area_label_list_model = []
-            write_cover_areas_for_pointer_and_labels(st.session_state.key_points_model_original, model_image,
-                                                     st.session_state.cover_area_pointer_list_model,
-                                                     st.session_state.cover_area_label_list_model)
+
+
 
         model_node = st.text_input('Enter node position to change', key='model_node')
         if model_node:
@@ -285,10 +283,8 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
             st.session_state.point_selected = model_value
             if model_node:
-                st.write("heyy")
-                update_point_over_image(model_image, model_node, model_value, st.session_state.key_points_model,
-                                        st.session_state.cover_area_pointer_list_model,
-                                        st.session_state.cover_area_label_list_model, IMAGE_ADDRESS)
+                st.session_state.key_points_model[int(model_node)][0] = model_value["x"]
+                st.session_state.key_points_model[int(model_node)][1] = model_value["y"]
 
 
 
@@ -301,16 +297,15 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
         write_points_and_labels_over_image(st.session_state.key_points_model, model_image)
         st.image(model_image, use_column_width=True)
 
-
     ###  PARSED IMAGE GENERATOR OUTPUT###
 
     parse_image_generator = st.button("Generate Parsed Image!")
+    if st.session_state.pg_output == None:
+        st.write("Please first generate Parse Generator Output")
+
     if parse_image_generator:
         model_parse_ag_full_image = Image.open(PARSE_AG_ADDRESS)
         p_pos = st.session_state.key_points_model.copy()
-        st.write(f"values earlier:  {p_pos[1][0]}--{p_pos[1][1]}")
-        ### temporary
-
         p_pos = torch.tensor(p_pos)
         p_pos[:, 0] = p_pos[:, 0] / 768
         p_pos[:, 1] = p_pos[:, 1] / 1024
@@ -343,7 +338,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
         c_pos, v_pos = get_c_pos_warp(st.session_state.key_points_tshirt.copy())
 
-        im_backbone, im_left_up, im_right_up, im_left_low, im_right_low = generate_warp_images(
+        im_backbone, im_left_up, im_right_up, im_left_low, im_right_low = generate_and_save_warp_images(
             np.asarray(Image.open(IMAGE_ADDRESS)),
             np.asarray(Image.open(CLOTH_ADDRESS)),
             v_pos.float(),
@@ -353,74 +348,106 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
             st.session_state.pg_output
 
         )
-        st.write(im_backbone.shape)
-        Image.fromarray(im_backbone).save("im_backbone.jpg")
+
+    col1, col2 = st.columns(2)
+    with col1:
+
+        controls_models = st.columns(3)
+        with controls_models[0]:
+            blend_intensity = st.select_slider("Intensity", range(10, 100, 10), key="blend_intensity")
+
+        with controls_models[1]:
+            cutouts_range = ['backbone', 'left_up', 'left_down', 'right_up', 'right_down']
+            selected_cutout = st.selectbox("cutouts", cutouts_range, key="cutouts_dropdown")
+
+        with controls_models[2]:
+            cutout_keypoints = st.selectbox("Edit any keypoint", range(0, 50), key="cutout_keypoints")
+
+        cutouts_list = os.listdir('myra-app-main/predict')
+
+        cutout = [file for file in cutouts_list if selected_cutout in file]
+
         # Load the images
-        image1 = np.asarray(Image.open(IMAGE_ADDRESS))
-        image2 = np.asarray(im_backbone, dtype = np.uint8)
+        model_image = np.asarray(Image.open(IMAGE_ADDRESS))
 
-        # Make sure both images have the same dimensions
-        image2 = cv2.resize(image2, (image1.shape[1], image1.shape[0]))
-
-        # Convert the image to grayscale
-        gray_image = cv2.cvtColor(image2, cv2.COLOR_BGR2GRAY)
-
-        # Threshold the grayscale image to create a mask for white pixels
-        _, mask = cv2.threshold(gray_image, 240, 255, cv2.THRESH_BINARY)
-
-        # Invert the mask
-        mask = cv2.bitwise_not(mask)
-
-        # Set white pixels to black in the original image using the mask
-        image2[mask == 0] = [100, 100, 100]
-
-        # Define the weight for each image
-        alpha = 0.3  # Weight for the first image
-        beta = 1.5  # Weight for the second image
-        st.write("hiiii")
-        # Blend the images
-        blended_image = cv2.addWeighted(image1, alpha, image2, beta, 0)
-
-        col1, col2 = st.columns(2)
-        with col1:
-            st.image(image2)
-        with col2:
-            st.image(blended_image)
-    if os.path.exists("im_backbone.jpg"):
-        # Load the image using Pillow
-        im_backbone = np.asarray(Image.open("im_backbone.jpg"))
-
-        # Convert the image to grayscale using Pillow
-        gray_image = np.asarray(Image.open("im_backbone.jpg").convert("L"))
-
-        # Threshold the grayscale image to create a mask for white pixels
-        _, mask = cv2.threshold(gray_image, 240, 255, cv2.THRESH_BINARY)
-
-        # Invert the mask
-        mask = cv2.bitwise_not(mask)
-        # Make a copy of the original image to ensure it's writable
-        im_backbone_copy = im_backbone.copy()
-
-        # Set white pixels to black in the original image using the mask
-        im_backbone_copy[mask == 0] = [0, 0, 0]
-        st.write("Hi")
-        value = streamlit_image_coordinates(
-                Image.fromarray(im_backbone_copy),
-                key="pil1")
-        st.write(value)
-
-        st.write(im_backbone[value["y"], value["x"]])
+        if not cutout:
+            st.image(model_image)
 
 
 
+        else:
+
+
+            st.write(selected_cutout)
+            st.write(st.session_state.selected_cutout)
+            if st.session_state.selected_cutout != selected_cutout:
+                cutout_image = np.asarray(Image.open(os.path.join('myra-app-main/predict', cutout[0])))
+
+                # Make sure both images have the same dimensions
+                cutout_image = cv2.resize(cutout_image, (model_image.shape[1], model_image.shape[0]))
+
+                # Convert the image to grayscale
+                gray_image = cv2.cvtColor(cutout_image, cv2.COLOR_BGR2GRAY)
+
+                # Threshold the grayscale image to create a mask for white pixels
+                _, mask = cv2.threshold(gray_image, 240, 255, cv2.THRESH_BINARY)
+
+                # Invert the mask
+                mask = cv2.bitwise_not(mask)
+
+                # Set white pixels to black in the original image using the mask
+                cutout_image[mask == 0] = [100, 100, 100]
+
+                p_pos = st.session_state.key_points_model.copy()
+
+                p_pos_selected = p_pos[group_backbone]
+                st.session_state.cutout_points = p_pos_selected
+                kps_count = len(p_pos_selected)
+                ## Not sure why we are alingning like below
+                # poly[:, 0] = (poly[:, 0] * 0.5 + 0.5) * 768
+                # poly[:, 1] = (poly[:, 1] * 0.5 + 0.5) * 1024
+
+                cutout_image = Image.fromarray(cutout_image)
+                cutout_image.save('myra-app-main/predict/cut_out.jpg')
+
+
+                st.session_state.selected_cutout = selected_cutout
+                st.session_state.cover_area_pointer_list_cutout = []
+                st.session_state.cover_area_label_list_cutout = []
+                write_cover_areas_for_pointer_and_labels(st.session_state.cutout_points, cutout_image,
+                                                         st.session_state.cover_area_pointer_list_cutout,
+                                                         st.session_state.cover_area_label_list_cutout)
+
+
+
+            else:
+                cutout_image = np.asarray(Image.open('myra-app-main/predict/cut_out.jpg'))
+            # Define the weight for each image
+            alpha = blend_intensity / 100  # Weight for the model image
+            beta = (100 - blend_intensity) / 100  # Weight for the cutout image
+
+            blended_image = cv2.addWeighted(model_image, alpha, cutout_image, beta, 0)
+            blended_image = Image.fromarray(blended_image)
+            write_points_and_labels_over_image(st.session_state.cutout_points, blended_image)
+
+
+            ### Add new keypoint
+            point_added = streamlit_image_coordinates(
+                blended_image,
+                key="cutout_pt_add")
+            if point_added and (point_added["x"] != st.session_state.point_selected["x"] and point_added["y"] !=
+                                st.session_state.point_selected["y"]):
+                st.session_state.point_selected = point_added
+                value_to_append = np.array([point_added["x"], point_added["y"]], dtype=np.float32)
+                st.session_state.cutout_points = np.append(st.session_state.cutout_points, [value_to_append], axis=0)
+                st.experimental_rerun()
 
 
 
 
 
-        #Image.fromarray(out_image).save('myra-app-main/predict/images/out_image.jpg')
-        #Image.fromarray(out_mask).save('myra-app-main/predict/images/out_mask.jpg')
-        # st.image(Image.fromarray(out_mask))
+    with col2:
+        st.image(model_image)
 
 
 def main():
