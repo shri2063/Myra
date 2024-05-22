@@ -144,6 +144,7 @@ def get_ag_parse_image_hot_encoder():
     # Basically creates one hot encoding representation where eqach pixel value in the original image is represented as a one-hot vector along the zeroth dimension of parse_13
     parse_13 = parse_13.scatter_(0, parse, 1.0)
     parse_13 = parse_13[None]
+    return parse_13
 
 # Cloth Position
 '''
@@ -187,4 +188,4 @@ def get_dataset_dict():
         'model_seg': get_model_seg_img()  # model_seg_image
     }
     return result
-get_dataset_dict()
+#get_dataset_dict()

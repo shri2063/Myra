@@ -219,7 +219,9 @@ def generate_repaint(image, cloth, source, target, ag_mask, skin_mask, parse_13)
     out_image = image.copy()
     ## Masking tshirt in output image , out_image = (h,w,3), ag_mask = (h,w)
     out_image[ag_mask == 0, :] = 0
-    st.image(out_image)
+    plt.title("Out Image")
+    plt.imshow(out_image, cmap='gray')
+    plt.show()
     # Paste Skin
     new_skin_mask = skin_mask.copy()
     new_skin_mask[(parse_13[5] + parse_13[6] + parse_13[11]).numpy() == 0] = 0
@@ -350,13 +352,14 @@ def generate_tps_st(image: np.ndarray, cloth: np.ndarray, source: torch.Tensor, 
 
 def generate_tps():
     result = get_dataset_dict();
+    print(result.keys())
     # print(result)
     image = result['image']
     cloth = result['cloth']
     ## mask of the tshirt in output image
     ag_mask = result['ag_mask']
     skin_mask = result['skin_mask']
-    parse_13 = result['parse13_model_seg'].squeeze()
+    parse_13 = result['parse_ag'].squeeze()
     ## (32,2) key pointers of Source Tshirt
     source = result['v_pos'].float()
     ## (32,2) key pointers of Target Tshirt
@@ -372,4 +375,4 @@ def generate_tps():
     out_image, out_mask = generate_repaint(image, cloth, source, target, ag_mask, skin_mask, parse_13)
     return out_image, out_mask
 
-#generate_tps()
+generate_tps()

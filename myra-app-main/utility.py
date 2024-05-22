@@ -4,8 +4,10 @@ import json
 import base64
 import sys
 import torch
+
 sys.path.append('myra-app-main/predict')
-from predict_pos_keypoints import adj_mx_from_edges,edges_c,edges_s,GCN_2
+from predict_pos_keypoints import adj_mx_from_edges, edges_c, edges_s, GCN_2
+
 sys.path.append('myra-app-main/datasets')
 import streamlit as st
 import matplotlib.pyplot as plt
@@ -13,9 +15,12 @@ from os import listdir
 import pandas as pd
 import string
 import random
+
 #### CATALOG FUNCTIONS ###########
 directory_models = r'myra-app-main/data/image'
 directory_tshirts = r'myra-app-main/data/cloth'
+
+
 def initialize(type):
     if type == "model":
         if 'df_models' not in st.session_state:
@@ -37,13 +42,9 @@ def initialize(type):
             return df_tshirts
 
 
-
-
-
 ####### KeyPoints marker functions##########
 def update_point_over_image(edited_image: Image, node: str, value: dict, kp_arr: np.ndarray,
-                            cover_area_pointer_list: list, cover_area_label_list: list,address:str):
-
+                            cover_area_pointer_list: list, cover_area_label_list: list, address: str):
     point_size = 5
     label_text = 'Point'
     draw = ImageDraw.Draw(edited_image)
@@ -53,7 +54,7 @@ def update_point_over_image(edited_image: Image, node: str, value: dict, kp_arr:
 
     node = int(node)
     original_image = Image.open(address)
-    #st.write(f"values earlier: Node: {node}--- {kp_arr[node][0]}--{kp_arr[node][1]}")
+    # st.write(f"values earlier: Node: {node}--- {kp_arr[node][0]}--{kp_arr[node][1]}")
     if node < len(kp_arr):
         kp_arr[node][0] = value["x"]
         kp_arr[node][1] = value["y"]
@@ -64,10 +65,8 @@ def update_point_over_image(edited_image: Image, node: str, value: dict, kp_arr:
         edited_image.paste(image_crop, cover_area_pointer_list[node])
     else:
         st.write(kp_arr.shape)
-        value_to_append = np.array([value["x"], value["y"]], dtype = np.float32)
-        kp_arr = np.append(kp_arr, [value_to_append], axis = 0)
-
-
+        value_to_append = np.array([value["x"], value["y"]], dtype=np.float32)
+        kp_arr = np.append(kp_arr, [value_to_append], axis=0)
 
     draw.ellipse((kp_arr[node][0] - point_size,
                   kp_arr[node][1] - point_size,
@@ -91,13 +90,14 @@ def update_point_over_image(edited_image: Image, node: str, value: dict, kp_arr:
     else:
 
         cover_area_pointer_list = np.append(cover_area_pointer_list, cover_area_pointer)
-        cover_area_label_list = np.append(cover_area_label_list,cover_area_label)
+        cover_area_label_list = np.append(cover_area_label_list, cover_area_label)
 
     text_x = kp_arr[node][0] + point_size + 5  # Adjust for spacing
     text_y = kp_arr[node][1] - text_height // 2
     st.write(text_y, text_x)
     draw.text((text_x, text_y), str(node), fill='red', font=font)
     st.image(edited_image)
+
 
 def write_cover_areas_for_pointer_and_labels(arr: np.ndarray, image: Image, cover_area_pointer_list: list,
                                              cover_area_label_list: list):
@@ -123,14 +123,26 @@ def write_cover_areas_for_pointer_and_labels(arr: np.ndarray, image: Image, cove
         cover_area_label_list.append(cover_area_label)
 
 
-def write_points_and_labels_over_image(arr: np.ndarray, image: Image) -> Image:
+def write_points_and_labels_over_image(arr: np.ndarray, image: Image, labels: {} = None) -> Image:
     point_size = 5
     label_text = 'Point'
     draw = ImageDraw.Draw(image)
     font_size = 16
-    font = ImageFont.truetype("arial.ttf", font_size)
+    font = ImageFont.truetype("arial.ttf", 15)
     text_width, text_height = 5, 5
-    point_color = 'green'
+    point_color = 'red'
+
+
+    if labels is not None:
+        for id, point in enumerate(arr):
+            draw.ellipse(
+                (point[0] - point_size, point[1] - point_size, point[0] + point_size, point[1] + point_size),
+                fill=point_color)
+            text_x = point[0] + point_size + 5  # Adjust for spacing
+            text_y = point[1] - text_height // 2
+
+            draw.text((text_x, text_y), str(labels[id]), fill='red', font=font)
+        return image
 
     for id, point in enumerate(arr):
         draw.ellipse(
@@ -138,31 +150,33 @@ def write_points_and_labels_over_image(arr: np.ndarray, image: Image) -> Image:
             fill=point_color)
         text_x = point[0] + point_size + 5  # Adjust for spacing
         text_y = point[1] - text_height // 2
-        draw.text((text_x, text_y), str(id), fill='green', font=font)
+        draw.text((text_x, text_y), str(id), fill='red', font=font)
+
     return image
 
 
 def get_s_pos_string(s_pos_json) -> str:
-        with open(s_pos_json, 'r') as f:
-            s_pos = np.array(json.load(f)["people"][0]["pose_keypoints_2d"])
+    with open(s_pos_json, 'r') as f:
+        s_pos = np.array(json.load(f)["people"][0]["pose_keypoints_2d"])
 
-            s_pos = s_pos.tostring()
-            s_pos = base64.b64encode(s_pos).decode('utf-8')
-            return s_pos
+        s_pos = s_pos.tostring()
+        s_pos = base64.b64encode(s_pos).decode('utf-8')
+        return s_pos
+
 
 def get_c_pos_string(c_pos_json) -> str:
-        with open(c_pos_json, 'r') as f:
-            c_pos = json.load(f)
-            c_pos = np.array(c_pos["long"])
-            c_pos = c_pos.tostring()
-            c_pos = base64.b64encode(c_pos).decode('utf-8')
-            return c_pos
+    with open(c_pos_json, 'r') as f:
+        c_pos = json.load(f)
+        c_pos = np.array(c_pos["long"])
+        c_pos = c_pos.tostring()
+        c_pos = base64.b64encode(c_pos).decode('utf-8')
+        return c_pos
+
 
 def get_c_pos_warp(c_pos) -> tuple:
-
     ck_idx = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28,
-                  29,30, 31, 32]
-    c_pos = c_pos[ck_idx, :]/250
+              29, 30, 31, 32]
+    c_pos = c_pos[ck_idx, :] / 250
 
     c_pos[:, 0] = c_pos[:, 0] / 3
     c_pos[:, 1] = c_pos[:, 1] / 4
@@ -176,7 +190,6 @@ def get_c_pos_warp(c_pos) -> tuple:
 
     c_pos = torch.tensor(c_pos)
     return c_pos, v_pos
-
 
 
 def get_s_pos(s_pos_address) -> torch.tensor:
@@ -195,7 +208,9 @@ def get_s_pos(s_pos_address) -> torch.tensor:
 
         s_pos = torch.from_numpy(s_pos)
         return s_pos
-def get_p_pos(key_points: torch.Tensor,s_pos_address) -> np.ndarray:
+
+
+def get_p_pos(key_points: torch.Tensor, s_pos_address) -> np.ndarray:
     adj_c = adj_mx_from_edges(32, edges_c, False)
     adj_s = adj_mx_from_edges(10, edges_s, False)
     kg_network = GCN_2(adj_c, adj_s, 160)
@@ -203,12 +218,10 @@ def get_p_pos(key_points: torch.Tensor,s_pos_address) -> np.ndarray:
         torch.load('myra-app-main/checkpoints_pretrained/kg/step_299999.pt', map_location=torch.device('cpu')))
     kg_network.eval()
 
-
-    key_points = key_points[1:,:]
-    key_points = key_points/250
+    key_points = key_points[1:, :]
+    key_points = key_points / 250
     key_points[:, 0] = key_points[:, 0] / 3
     key_points[:, 1] = key_points[:, 1] / 4
-
 
     c_w = (key_points[2][0] + key_points[18][0]) / 2
     c_h = (key_points[2][1] + key_points[18][1]) / 2
@@ -222,18 +235,19 @@ def get_p_pos(key_points: torch.Tensor,s_pos_address) -> np.ndarray:
     key_points = key_points.float()
 
     p_pos = kg_network(key_points, s_pos).detach().numpy()
-    #print("p pos", p_pos)
+    # print("p pos", p_pos)
     p_pos = p_pos[0]
     with open("myra-app-main/predict/p_pos.json", "a") as file:
         json.dump(p_pos.tolist(), file)
-    p_pos[:,0] = p_pos[:,0]*768
+    p_pos[:, 0] = p_pos[:, 0] * 768
     p_pos[:, 1] = p_pos[:, 1] * 1024
 
-    #print("p pos", p_pos.shape)
+    # print("p pos", p_pos.shape)
     return p_pos
 
+
 def generate_random_string(length):
-        # Choose from all uppercase letters and digits
-        characters = string.ascii_uppercase + string.digits
-        # Generate a random string of given length
-        return ''.join(random.choices(characters, k=length))
+    # Choose from all uppercase letters and digits
+    characters = string.ascii_uppercase + string.digits
+    # Generate a random string of given length
+    return ''.join(random.choices(characters, k=length))

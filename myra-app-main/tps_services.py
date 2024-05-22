@@ -5,7 +5,7 @@ import streamlit as st
 from torchvision.transforms import ToTensor, ToPILImage
 import pyclipper
 from PIL import Image
-
+import torchvision.transforms as transforms
 
 
 class TPS(torch.nn.Module):
@@ -131,6 +131,19 @@ def warp_part(group_id, ten_source, ten_target, ten_source_center, ten_target_ce
     return out_img
 
 
+
+def equidistant_zoom_contour(contour, margin):
+    pco = pyclipper.PyclipperOffset()
+    contour = contour[:, :]
+    pco.AddPath(contour, pyclipper.JT_MITER, pyclipper.ET_CLOSEDPOLYGON)
+    solution = pco.Execute(margin)
+    if len(solution) == 0:
+        solution = np.zeros((3, 2)).astype(int)
+    else:
+        solution = np.array(solution[0]).reshape(-1, 2).astype(int)
+
+    return solution
+
 def paste_cloth(mask, image, tps_image, l_mask, r_mask, parse_13):
     out_image = image.copy()
     out_mask = mask.copy()
@@ -146,6 +159,30 @@ def paste_cloth(mask, image, tps_image, l_mask, r_mask, parse_13):
     return out_mask, out_image
 
 
+def get_tshirt_mask(skin_mask_address):
+    ag_mask = cv2.imread(skin_mask_address, cv2.IMREAD_GRAYSCALE)
+    return np.array(transforms.Resize(768)(Image.fromarray(ag_mask)))
+
+def parse_model_framework(skin_mask_address, pg_output, image,ag_mask):
+
+    out_mask = ag_mask.copy()
+    ## Mask of output image
+    out_image = image.copy()
+    parse_13 = pg_output[0]
+    ## Masking tshirt in output image , out_image = (h,w,3), ag_mask = (h,w)
+    out_image[ag_mask == 255, :] = 255
+    st.image(parse_13[11].numpy().astype(np.uint8))
+
+
+    new_skin_mask = get_tshirt_mask(skin_mask_address)
+
+    new_skin_mask[(parse_13[5] + parse_13[6] + parse_13[11]).numpy() == 0] = 0
+    #st.image(new_skin_mask.astype(np.uint8))
+
+    out_mask[new_skin_mask == 255] = 255
+    out_image[new_skin_mask == 255, :] = image[new_skin_mask == 255, :]
+
+    return out_image, out_mask
 def generate_and_save_warp_images(image: np.ndarray, cloth: np.ndarray, source: torch.Tensor, target: torch.Tensor,
                                   ag_mask: np.array, skin_mask: np.array, pg_output: np.ndarray):
 
@@ -160,7 +197,7 @@ def generate_and_save_warp_images(image: np.ndarray, cloth: np.ndarray, source: 
     #st.image(out_image)
     # Paste Skin
     new_skin_mask = skin_mask.copy()
-    st.write("hiii")
+
     new_skin_mask[(parse_13[5] + parse_13[6] + parse_13[11]).numpy() == 0] = 0
 
     out_mask[new_skin_mask == 255] = 255
@@ -201,11 +238,11 @@ def generate_and_save_warp_images(image: np.ndarray, cloth: np.ndarray, source: 
     im_right_low = warp_part(
         group_right_low, ten_source, ten_target, ten_source_center, ten_target_center, ten_cloth)
 
-    Image.fromarray(im_backbone).save('myra-app-main/predict/im_backbone.jpg')
-    Image.fromarray(im_left_up).save('myra-app-main/predict/im_left_up.jpg')
-    Image.fromarray(im_right_up).save('myra-app-main/predict/im_right_up.jpg')
-    Image.fromarray(im_left_low).save('myra-app-main/predict/im_left_low.jpg')
-    Image.fromarray(im_right_low).save('myra-app-main/predict/im_right_low.jpg')
+    Image.fromarray(im_backbone).save('myra-app-main/predict/images/cutouts/im_backbone.jpg')
+    Image.fromarray(im_left_up).save('myra-app-main/predict/images/cutouts/im_left_up.jpg')
+    Image.fromarray(im_right_up).save('myra-app-main/predict/images/cutouts/im_right_up.jpg')
+    Image.fromarray(im_left_low).save('myra-app-main/predict/images/cutouts/im_left_low.jpg')
+    Image.fromarray(im_right_low).save('myra-app-main/predict/images/cutouts/im_right_low.jpg')
 
 
 
