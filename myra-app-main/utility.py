@@ -134,6 +134,8 @@ def write_points_and_labels_over_image(arr: np.ndarray, image: Image, labels: {}
 
 
     if labels is not None:
+
+
         for id, point in enumerate(arr):
             draw.ellipse(
                 (point[0] - point_size, point[1] - point_size, point[0] + point_size, point[1] + point_size),

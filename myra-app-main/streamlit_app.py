@@ -52,6 +52,10 @@ if 'last_selected_delete_pt' not in st.session_state:
 
 if 'warper_toggle' not in st.session_state:
     st.session_state.warper_toggle = None
+if 'edit_mask_selected_points' not in st.session_state:
+    st.session_state.edit_mask_selected_points = []
+if 'edit_mask_replace_color' not in st.session_state:
+        st.session_state.edit_mask_replace_color = []
 
 
 
@@ -258,7 +262,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
             if model_node:
 
-                remove_file()
+                #remove_file()
                 st.session_state.key_points_model[int(model_node)][0] = model_value["x"]
                 st.session_state.key_points_model[int(model_node)][1] = model_value["y"]
 
@@ -369,13 +373,13 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
         blended_image = cv2.addWeighted(model_image, alpha, cutout_image_processed, beta, 0)
         blended_image = Image.fromarray(blended_image.astype(np.uint8))
 
-        write_points_and_labels_over_image(st.session_state.cutout_list[selected_cutout], blended_image,CUTOUT_MAPPING.get(selected_cutout, []))
+        write_points_and_labels_over_image(st.session_state.key_points_model[CUTOUT_MAPPING.get(selected_cutout, [])], blended_image,CUTOUT_MAPPING.get(selected_cutout, []))
 
         st.image(blended_image)
 
     with col2:
         model_image = Image.open(IMAGE_ADDRESS)
-        write_points_and_labels_over_image(st.session_state.key_points_model, model_image)
+        write_points_and_labels_over_image(st.session_state.key_points_model[CUTOUT_MAPPING.get(selected_cutout,[])], model_image,CUTOUT_MAPPING.get(selected_cutout, []))
         st.image(model_image, use_column_width=True)
 
 
@@ -411,6 +415,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
                     st.session_state.selected_delete_point = selected_point
                     st.session_state.cutout_list[selected_cutout] = np.delete(
                         st.session_state.cutout_list[selected_cutout], selected_point, axis=0)
+                    st.rerun()
 
 
             add_point_post = st.selectbox("Add point after",
@@ -458,6 +463,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
             st.write("path exists")
 
             out_image = np.asarray(Image.open('myra-app-main/predict/images/out_image.jpg')).copy()
+            out_mask = np.asarray(Image.open('myra-app-main/predict/images/out_mask.jpg')).copy()
 
         else:
             st.write("path not exists")
@@ -469,6 +475,16 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
             out_image[mask_image == 11, :] = model_image[mask_image == 11, :]
             out_image[mask_image == 5, :] = model_image[mask_image == 5, :]
             out_image[mask_image == 6, :] = model_image[mask_image == 6, :]
+
+            x = 255 -  np.asarray(Image.open(AG_MASK_ADDRESS))
+            out_mask = x.copy()
+            mask_image = np.asarray(Image.open(PARSE_ADDRESS))
+            out_mask[mask_image == 11] = 255
+            out_mask[mask_image == 5] = 255
+            out_mask[mask_image == 6] = 255
+
+
+
 
         l_mask = np.zeros((1024, 768))
         s_mask = np.zeros((1024, 768))
@@ -484,8 +500,11 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
         l_mask = l_mask.astype(np.uint32)
         out_image[l_mask == 255, :] = 255
-        if not os.path.exists('myra-app-main/predict/images/out_image_transit.jpg'):
-            Image.fromarray(out_image.astype(np.uint8)).save('myra-app-main/predict/images/out_image_transit.jpg')
+        out_mask[l_mask == 255] = 255
+        if not os.path.exists('myra-app-main/predict/images/out_image_l_mask_ag.jpg'):
+            Image.fromarray(out_image.astype(np.uint8)).save('myra-app-main/predict/images/out_image_l_mask_ag.jpg')
+        if not os.path.exists('myra-app-main/predict/images/out_mask_l_mask_ag.jpg'):
+            Image.fromarray(out_mask.astype(np.uint8)).save('myra-app-main/predict/images/out_mask_l_mask_ag.jpg')
 
 
 
@@ -519,21 +538,104 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
             st.rerun()
 
-        if os.path.exists('myra-app-main/predict/images/out_image_transit.jpg'):
-            out_image = np.asarray(Image.open('myra-app-main/predict/images/out_image_transit.jpg')).copy()
+        if os.path.exists('myra-app-main/predict/images/out_image_l_mask_ag.jpg'):
+            out_image = np.asarray(Image.open('myra-app-main/predict/images/out_image_l_mask_ag.jpg')).copy()
+        if os.path.exists('myra-app-main/predict/images/out_mask_l_mask_ag.jpg'):
+            out_mask = np.asarray(Image.open('myra-app-main/predict/images/out_mask_l_mask_ag.jpg')).copy()
 
         out_image[l_mask == 255, :] = 0
         out_image[l_mask == 255, :] = cutout_image[l_mask == 255, :]
+        out_mask[l_mask == 255] = 255
         modify = st.button(f"Save Modification")
 
         if modify:
+            model_image = np.asarray(Image.open(IMAGE_ADDRESS)).copy()
+            mask_image = np.asarray(Image.open(PARSE_ADDRESS))
+            st.image(out_image)
+            #out_image[mask_image == 11, :] = model_image[mask_image == 11, :]
+            #out_image[mask_image == 5, :] = model_image[mask_image == 5, :]
+            #out_image[mask_image == 6, :] = model_image[mask_image == 6, :]
             Image.fromarray(out_image.astype(np.uint8)).save('myra-app-main/predict/images/out_image.jpg')
-            os.remove('myra-app-main/predict/images/out_image_transit.jpg')
+            Image.fromarray(out_mask.astype(np.uint8)).save('myra-app-main/predict/images/out_mask.jpg')
+            os.remove('myra-app-main/predict/images/out_image_l_mask_ag.jpg')
+            os.remove('myra-app-main/predict/images/out_mask_l_mask_ag.jpg')
 
         st.image(out_image.astype(np.uint8))
 
 
- # Create a button
+    ###########CREATE MASK TO EDIT######################
+
+    st.markdown("**Edit via mask**:")
+
+    col1, col2 = st.columns(2)
+
+    with col1:
+        # Display a file uploader widget
+        uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
+        replace = st.checkbox("replace")
+        if uploaded_file is not None:
+            mask_image = Image.open(uploaded_file)
+            edit_point = streamlit_image_coordinates(
+                    mask_image,
+                    key="cut_out_mask_01")
+            if edit_point is not None:
+
+                if replace:
+                    st.session_state.edit_mask_replace_color = edit_point
+                else:
+                    value_to_append = np.array([edit_point["x"], edit_point["y"]], dtype=np.float32)
+                    st.session_state.edit_mask_selected_points.append(value_to_append)
+                    write_points_and_labels_over_image(
+                        np.array(st.session_state.edit_mask_selected_points), mask_image)
+
+
+    with col2:
+
+        controls_models = st.columns(2)
+        default_value = "Select"
+
+        with controls_models[0]:
+            create_mask = st.button("create mask")
+            if create_mask:
+                l_mask = np.zeros((1024, 768))
+                cutout_points_list = [np.array(st.session_state.edit_mask_selected_points).astype(np.int32)]
+
+                cv2.fillPoly(l_mask, cutout_points_list, 255)
+
+                mask_image = Image.open(uploaded_file)
+                mask_image = np.array(mask_image)
+                mask_image[l_mask == 255, :] = 255
+
+
+        with controls_models[1]:
+
+            replace = st.button("replace")
+            if replace:
+                color = np.asarray(mask_image)[st.session_state.edit_mask_replace_color["y"], st.session_state.edit_mask_replace_color["x"]]
+                l_mask = np.zeros((1024, 768))
+                cutout_points_list = [np.array(st.session_state.edit_mask_selected_points).astype(np.int32)]
+
+                cv2.fillPoly(l_mask, cutout_points_list, 255)
+
+                mask_image = Image.open(uploaded_file)
+                mask_image = np.array(mask_image)
+                mask_image[l_mask == 255, :] = color
+
+
+
+
+
+
+        st.image(mask_image, caption='Mask Image', use_column_width=True)
+
+
+
+
+
+
+
+
+    # Create a button
 
     button_clicked = st.button("Run Diffusion!")
 

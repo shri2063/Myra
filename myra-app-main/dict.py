@@ -59,5 +59,5 @@ def remove_file():
     if (os.path.exists('myra-app-main/predict/images/cutouts/im_right_up.jpg')):
         os.remove('myra-app-main/predict/images/cutouts/im_right_up.jpg')
 
-remove_file()
+#remove_file()
 

@@ -231,6 +231,10 @@ def generate_repaint(image, cloth, source, target, ag_mask, skin_mask, parse_13)
     plt.savefig('new_skin_mask.png', bbox_inches='tight')
     out_mask[new_skin_mask == 255] = 255
     out_image[new_skin_mask == 255, :] = image[new_skin_mask == 255, :]
+
+    plt.title("Out Mask Initial")
+    plt.imshow(cv2.cvtColor(out_mask, cv2.COLOR_BGR2RGB))
+    plt.show()
     # Tshirt mask with skin
     #out_mask[new_skin_mask == 255] = 255
     #out_image[new_skin_mask == 255, :] = image[new_skin_mask == 255, :]
@@ -297,6 +301,9 @@ def generate_repaint(image, cloth, source, target, ag_mask, skin_mask, parse_13)
     out_mask, out_image = paste_cloth(out_mask, out_image, im_right_low, l_mask_right_low, r_mask_right_low, parse_13)
     plt.title("right lower")
     plt.imshow(cv2.cvtColor(out_image, cv2.COLOR_BGR2RGB))
+    plt.show()
+    plt.title("Out Mask")
+    plt.imshow(cv2.cvtColor(out_mask, cv2.COLOR_BGR2RGB))
     plt.show()
 
 
