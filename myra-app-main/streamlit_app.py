@@ -223,39 +223,38 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
     ###################KEYPOINT DETECTOR#########################
     # Create two columns to show cloth and model Image
-    col1, col2 = st.columns(2)
 
-    # Display the myra_v1 in the columns
 
-    with col1:
-
-        model_image = Image.open(IMAGE_ADDRESS)
-        if st.session_state.key_points_model_original is not None:
-            write_points_and_labels_over_image(st.session_state.key_points_model_original, model_image)
+    model_image = Image.open(IMAGE_ADDRESS)
+    if st.session_state.key_points_model_original is not None:
+            write_points_and_labels_over_image(st.session_state.key_points_model, model_image)
 
         # If Key Point Detector Is called
-        key_point_detector = st.button("Run KeyPoint Detector!")
-        if key_point_detector:
-            key_points = st.session_state.key_points_tshirt
+    refresh = st.button("Refresh App")
+    if refresh:
+        remove_file()
+    key_point_detector = st.button("Run KeyPoint Detector!")
+    if key_point_detector:
+        key_points = st.session_state.key_points_tshirt
 
-            p_pos = get_p_pos(key_points, s_pos_json)
+        p_pos = get_p_pos(key_points, s_pos_json)
 
-            st.session_state.key_points_model = p_pos
-            st.session_state.key_points_model_original = p_pos.copy()
-            model_image = Image.open(IMAGE_ADDRESS)
-            write_points_and_labels_over_image(p_pos, model_image)
+        st.session_state.key_points_model = p_pos
+        st.session_state.key_points_model_original = p_pos.copy()
+        model_image = Image.open(IMAGE_ADDRESS)
+        write_points_and_labels_over_image(p_pos, model_image)
 
-        model_node = st.text_input('Enter node position to change', key='model_node')
-        if model_node:
+    model_node = st.text_input('Enter node position to change', key='model_node')
+    if model_node:
             st.write("You are modifying Node " + str(model_node) + "   Please click on new position")
             # Create a button
 
-        model_value = streamlit_image_coordinates(
+    model_value = streamlit_image_coordinates(
             model_image,
             key="model_value",
         )
 
-        if model_value and (model_value["x"] != st.session_state.point_selected_model["x"] and model_value["y"] !=
+    if model_value and (model_value["x"] != st.session_state.point_selected_model["x"] and model_value["y"] !=
                             st.session_state.point_selected_model["y"]):
 
             st.session_state.point_selected_model  = model_value
@@ -265,19 +264,18 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
                 #remove_file()
                 st.session_state.key_points_model[int(model_node)][0] = model_value["x"]
                 st.session_state.key_points_model[int(model_node)][1] = model_value["y"]
-
-
-
-
+                st.rerun()
 
             else:
                 st.sidebar.write("Please select a node first")
 
+    '''
     with col2:
         st.write("New KeyPoints")
         model_image = Image.open(IMAGE_ADDRESS)
         write_points_and_labels_over_image(st.session_state.key_points_model, model_image)
         st.image(model_image, use_column_width=True)
+    '''
 
 
     ###########Tshirt Wrapper PIPELINE######################
@@ -297,11 +295,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
         # st.image(model_parse_gen_image)
         st.session_state.pg_output = pg_output
 
-        p_pos = st.session_state.key_points_model.copy()
-        p_pos = torch.tensor(p_pos)
-        p_pos[:, 0] = p_pos[:, 0] / 768
-        p_pos[:, 1] = p_pos[:, 1] / 1024
-        p_pos = p_pos.float()
+
 
         ag_mask = 255 - np.asarray(Image.open(AG_MASK_ADDRESS))
 
@@ -551,10 +545,10 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
         if modify:
             model_image = np.asarray(Image.open(IMAGE_ADDRESS)).copy()
             mask_image = np.asarray(Image.open(PARSE_ADDRESS))
-            st.image(out_image)
-            #out_image[mask_image == 11, :] = model_image[mask_image == 11, :]
-            #out_image[mask_image == 5, :] = model_image[mask_image == 5, :]
-            #out_image[mask_image == 6, :] = model_image[mask_image == 6, :]
+
+            out_image[mask_image == 11, :] = model_image[mask_image == 11, :]
+            out_image[mask_image == 5, :] = model_image[mask_image == 5, :]
+            out_image[mask_image == 6, :] = model_image[mask_image == 6, :]
             Image.fromarray(out_image.astype(np.uint8)).save('myra-app-main/predict/images/out_image.jpg')
             Image.fromarray(out_mask.astype(np.uint8)).save('myra-app-main/predict/images/out_mask.jpg')
             os.remove('myra-app-main/predict/images/out_image_l_mask_ag.jpg')

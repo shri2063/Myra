@@ -58,6 +58,12 @@ def remove_file():
         os.remove('myra-app-main/predict/images/cutouts/im_right_up.jpg')
     if (os.path.exists('myra-app-main/predict/images/cutouts/im_right_up.jpg')):
         os.remove('myra-app-main/predict/images/cutouts/im_right_up.jpg')
+    if (os.path.exists('myra-app-main/predict/images/out_image_l_mask_ag.jpg')):
+        os.remove('myra-app-main/predict/images/out_image_l_mask_ag.jpg')
+    if (os.path.exists('myra-app-main/predict/images/out_mask.jpg')):
+        os.remove('myra-app-main/predict/images/out_mask.jpg')
+    if (os.path.exists('myra-app-main/predict/images/out_mask_l_mask_ag.jpg')):
+        os.remove('myra-app-main/predict/images/out_mask_l_mask_ag.jpg')
 
 #remove_file()
 
