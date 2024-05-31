@@ -238,11 +238,11 @@ def generate_and_save_warp_images(image: np.ndarray, cloth: np.ndarray, source: 
     im_right_low = warp_part(
         group_right_low, ten_source, ten_target, ten_source_center, ten_target_center, ten_cloth)
 
-    Image.fromarray(im_backbone).save('myra-app-main/predict/images/cutouts/im_backbone.jpg')
-    Image.fromarray(im_left_up).save('myra-app-main/predict/images/cutouts/im_left_up.jpg')
-    Image.fromarray(im_right_up).save('myra-app-main/predict/images/cutouts/im_right_up.jpg')
-    Image.fromarray(im_left_low).save('myra-app-main/predict/images/cutouts/im_left_low.jpg')
-    Image.fromarray(im_right_low).save('myra-app-main/predict/images/cutouts/im_right_low.jpg')
+    Image.fromarray(im_backbone).save('myra-app-main/predict/images/cutouts/im_backbone.png')
+    Image.fromarray(im_left_up).save('myra-app-main/predict/images/cutouts/im_left_up.png')
+    Image.fromarray(im_right_up).save('myra-app-main/predict/images/cutouts/im_right_up.png')
+    Image.fromarray(im_left_low).save('myra-app-main/predict/images/cutouts/im_left_low.png')
+    Image.fromarray(im_right_low).save('myra-app-main/predict/images/cutouts/im_right_low.png')
 
 
 

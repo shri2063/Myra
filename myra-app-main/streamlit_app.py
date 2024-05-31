@@ -37,6 +37,8 @@ if 'point_selected_tshirt' not in st.session_state:
     st.session_state.point_selected_tshirt = {"x": 0, "y": 0}
 if 'point_selected_cutout' not in st.session_state:
     st.session_state.point_selected_cutout = {"x": 0, "y": 0}
+if 'point_selected_skin_mask' not in st.session_state:
+    st.session_state.point_selected_skin_mask = {"x": 0, "y": 0}
 if 'selected_model' not in st.session_state:
     st.session_state.selected_model = '00035_00'
 if 'selected_tshirt' not in st.session_state:
@@ -56,6 +58,8 @@ if 'edit_mask_selected_points' not in st.session_state:
     st.session_state.edit_mask_selected_points = []
 if 'edit_mask_replace_color' not in st.session_state:
         st.session_state.edit_mask_replace_color = []
+if 'mask_created' not in st.session_state:
+        st.session_state.mask_created = False
 
 
 
@@ -97,8 +101,8 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
             st.session_state.selected_tshirt = image[:8]
             st.session_state.key_points_tshirt_original = None
 
-            if (os.path.exists('myra-app-main/predict/images/out_image.jpg')):
-                os.remove('myra-app-main/predict/images/out_image.jpg')
+            if (os.path.exists('myra-app-main/predict/images/out_image.png')):
+                os.remove('myra-app-main/predict/images/out_image.png')
 
     ### Select a Model
     st.write("SELECT A MODEL")
@@ -158,55 +162,53 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
     # Display the myra_v1 in the column along with keypoints
 
     with col1:
-        st.write("SELECTED MODEL")
+        st.write(f"SELECTED MODEL: {st.session_state.selected_model}")
         st.image(f'myra-app-main/data/image/{st.session_state.selected_model}.jpg')
 
     with col2:
-        st.write("SELECTED TSHIRT")
+        st.write(f"SELECTED TSHIRT: {st.session_state.selected_tshirt}")
         st.image(f'myra-app-main/data/cloth/{st.session_state.selected_tshirt}.jpg')
 
 
 
     #############PLOT KEYPOINTS OVER TSHIRT#############
 
-    # Create two columns to show cloth and model Image
-    col1, col2 = st.columns(2)
 
-    # Display the myra_v1 in the column along with keypoints
 
-    with col1:
-        # Create an input text box to select a keypoint whose position needs to be changed
 
-        node = st.text_input('Enter node position to change')
-        if node:
-            st.write("You are modifying Node " + node + "   Please click on new position")
+    # Create an input text box to select a keypoint whose position needs to be changed
 
-        if os.path.exists(CLOTH_ADDRESS):
+    node = st.text_input('Enter node position to change')
+    if node:
+        st.write("You are modifying Node " + node + "   Please click on new position")
 
-            if st.session_state.key_points_tshirt_original is None:
-                with open(c_pos_json, 'r') as file:
+    if os.path.exists(CLOTH_ADDRESS):
+
+        if st.session_state.key_points_tshirt_original is None:
+            with open(c_pos_json, 'r') as file:
                     json_list = json.load(file)
                     kp_arr = np.array(json_list["long"]) * 250
                     st.session_state.key_points_tshirt = kp_arr
                     st.session_state.key_points_tshirt_original = kp_arr.copy()
 
-            image = Image.open(CLOTH_ADDRESS)
-            write_points_and_labels_over_image(st.session_state.key_points_tshirt_original, image, None)
+        image = Image.open(CLOTH_ADDRESS)
+        write_points_and_labels_over_image(st.session_state.key_points_tshirt, image, None)
 
-            ## Streamlit Image coordinate is a spl library in streamlit that captures point coordinates
-            ## of a pixel clicked by mouse over the image
-            value = streamlit_image_coordinates(
+        ## Streamlit Image coordinate is a spl library in streamlit that captures point coordinates
+        ## of a pixel clicked by mouse over the image
+        value = streamlit_image_coordinates(
                 image,
                 key="pil",
-            )
+        )
 
-            if value and (value["x"] != st.session_state.point_selected_tshirt["x"] and value["y"] !=
+        if value and (value["x"] != st.session_state.point_selected_tshirt["x"] and value["y"] !=
                           st.session_state.point_selected_tshirt["y"]):
 
                 st.session_state.point_selected_tshirt = value
                 if node:
                     st.session_state.key_points_tshirt[int(node)][0] = value["x"]
                     st.session_state.key_points_tshirt[int(node)][1] = value["y"]
+                    st.rerun()
 
 
 
@@ -215,11 +217,6 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
                 # out_image = cloudinary_upload.uploadImage('myra-app-main/upload_images/image.jpg', 'tshirt')
 
-    with col2:
-        st.write("New KeyPoints")
-        image = Image.open(CLOTH_ADDRESS)
-        write_points_and_labels_over_image(st.session_state.key_points_tshirt, image, None)
-        st.image(image, use_column_width=True)
 
     ###################KEYPOINT DETECTOR#########################
     # Create two columns to show cloth and model Image
@@ -281,6 +278,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
     ###########Tshirt Wrapper PIPELINE######################
 
     generate_wrap = st.button("Generate Wrap ")
+
     if generate_wrap:
         model_parse_ag_full_image = Image.open(PARSE_AG_ADDRESS)
         p_pos = st.session_state.key_points_model.copy()
@@ -288,6 +286,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
         p_pos[:, 0] = p_pos[:, 0] / 768
         p_pos[:, 1] = p_pos[:, 1] / 1024
         p_pos = p_pos.float()
+        st.write("1")
 
         pg_output, parse13_model_seg = pg.parse_model_seg_image(get_s_pos(s_pos_json), p_pos.clone(),
                                                                 model_parse_ag_full_image)
@@ -295,8 +294,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
         # st.image(model_parse_gen_image)
         st.session_state.pg_output = pg_output
 
-
-
+        st.write("2")
         ag_mask = 255 - np.asarray(Image.open(AG_MASK_ADDRESS))
 
         ag_mask = np.array(transforms.Resize(768)(Image.fromarray(ag_mask)))
@@ -305,7 +303,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
         skin_mask = np.array(transforms.Resize(768)(Image.fromarray(skin_mask)))
 
         c_pos, v_pos = get_c_pos_warp(st.session_state.key_points_tshirt.copy())
-
+        st.write("3")
         generate_and_save_warp_images(
             np.asarray(Image.open(IMAGE_ADDRESS)),
             np.asarray(Image.open(CLOTH_ADDRESS)),
@@ -318,6 +316,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
         )
 
         p_pos = st.session_state.key_points_model.copy()
+        st.write("4")
         st.session_state.cutout_list['backbone'] = p_pos[CUTOUT_MAPPING.get('backbone', [])]
         st.session_state.cutout_list['left_up'] = p_pos[CUTOUT_MAPPING.get('left_up', [])]
         st.session_state.cutout_list['left_low'] = p_pos[CUTOUT_MAPPING.get('left_low', [])]
@@ -344,7 +343,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
         cutout = [file for file in files if selected_cutout in file]
         cutout_image = np.asarray(Image.open(os.path.join('myra-app-main/predict/images/cutouts', cutout[0])))
-
+        st.write("5")
         # Make sure both images have the same dimensions
         cutout_image_processed = cv2.resize(cutout_image, (model_image.shape[1], model_image.shape[0]))
 
@@ -364,9 +363,10 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
         alpha = blend_intensity / 100  # Weight for the model image
         beta = (100 - blend_intensity) / 100  # Weight for the cutout image
 
-        blended_image = cv2.addWeighted(model_image, alpha, cutout_image_processed, beta, 0)
-        blended_image = Image.fromarray(blended_image.astype(np.uint8))
+        blended_image = cv2.addWeighted(model_image[:,:,:3], alpha, cutout_image_processed, beta, 0)
 
+        blended_image = Image.fromarray(blended_image.astype(np.uint8))
+        st.write("6")
         write_points_and_labels_over_image(st.session_state.key_points_model[CUTOUT_MAPPING.get(selected_cutout, [])], blended_image,CUTOUT_MAPPING.get(selected_cutout, []))
 
         st.image(blended_image)
@@ -446,26 +446,28 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
         alpha = blend_intensity / 100  # Weight for the model image
         beta = (100 - blend_intensity) / 100  # Weight for the cutout image
 
-        blended_image = cv2.addWeighted(model_image, alpha, cutout_image_processed, beta, 0)
+        blended_image = cv2.addWeighted(model_image[:,:,:3], alpha, cutout_image_processed, beta, 0)
         blended_image = Image.fromarray(blended_image.astype(np.uint8))
 
 
         #write_points_and_labels_over_image(st.session_state.cutout_list[selected_cutout], blended_image,CUTOUT_MAPPING.get(selected_cutout, [])
         write_points_and_labels_over_image(st.session_state.cutout_list[selected_cutout], blended_image,None)
 
-        if os.path.exists('myra-app-main/predict/images/out_image.jpg'):
+        if os.path.exists('myra-app-main/predict/images/out_image.png'):
             st.write("path exists")
 
-            out_image = np.asarray(Image.open('myra-app-main/predict/images/out_image.jpg')).copy()
-            out_mask = np.asarray(Image.open('myra-app-main/predict/images/out_mask.jpg')).copy()
+            out_image = np.asarray(Image.open('myra-app-main/predict/images/out_image.png')).copy()
+            out_mask = np.asarray(Image.open('myra-app-main/predict/images/out_mask.png')).copy()
 
         else:
             st.write("path not exists")
-            out_image = np.asarray(Image.open(IMAGE_ADDRESS)).copy()
+            out_image = np.array(Image.open(IMAGE_ADDRESS)).copy()
             ag_mask = np.asarray(Image.open(AG_MASK_ADDRESS))
             mask_image = np.asarray(Image.open(PARSE_ADDRESS))
             model_image = np.asarray(Image.open(IMAGE_ADDRESS)).copy()
-            out_image[ag_mask == 255, :] = 255
+
+            out_image[ag_mask == 255, :3] = 0
+            st.image(out_image)
             out_image[mask_image == 11, :] = model_image[mask_image == 11, :]
             out_image[mask_image == 5, :] = model_image[mask_image == 5, :]
             out_image[mask_image == 6, :] = model_image[mask_image == 6, :]
@@ -493,12 +495,12 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
         cv2.fillPoly(s_mask, np.int32([new_poly]), 255)
 
         l_mask = l_mask.astype(np.uint32)
-        out_image[l_mask == 255, :] = 255
-        out_mask[l_mask == 255] = 255
-        if not os.path.exists('myra-app-main/predict/images/out_image_l_mask_ag.jpg'):
-            Image.fromarray(out_image.astype(np.uint8)).save('myra-app-main/predict/images/out_image_l_mask_ag.jpg')
-        if not os.path.exists('myra-app-main/predict/images/out_mask_l_mask_ag.jpg'):
-            Image.fromarray(out_mask.astype(np.uint8)).save('myra-app-main/predict/images/out_mask_l_mask_ag.jpg')
+        out_image[l_mask == 255, :] = 0
+        out_mask[l_mask == 255] = 0
+        if not os.path.exists('myra-app-main/predict/images/out_image_l_mask_ag.png'):
+            Image.fromarray(out_image.astype(np.uint8)).save('myra-app-main/predict/images/out_image_l_mask_ag.png')
+        if not os.path.exists('myra-app-main/predict/images/out_mask_l_mask_ag.png'):
+            Image.fromarray(out_mask.astype(np.uint8)).save('myra-app-main/predict/images/out_mask_l_mask_ag.png')
 
 
 
@@ -532,13 +534,15 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
             st.rerun()
 
-        if os.path.exists('myra-app-main/predict/images/out_image_l_mask_ag.jpg'):
-            out_image = np.asarray(Image.open('myra-app-main/predict/images/out_image_l_mask_ag.jpg')).copy()
-        if os.path.exists('myra-app-main/predict/images/out_mask_l_mask_ag.jpg'):
-            out_mask = np.asarray(Image.open('myra-app-main/predict/images/out_mask_l_mask_ag.jpg')).copy()
+        if os.path.exists('myra-app-main/predict/images/out_image_l_mask_ag.png'):
+            out_image = np.asarray(Image.open('myra-app-main/predict/images/out_image_l_mask_ag.png')).copy()
+        if os.path.exists('myra-app-main/predict/images/out_mask_l_mask_ag.png'):
+            out_mask = np.asarray(Image.open('myra-app-main/predict/images/out_mask_l_mask_ag.png')).copy()
 
         out_image[l_mask == 255, :] = 0
-        out_image[l_mask == 255, :] = cutout_image[l_mask == 255, :]
+
+        out_image[l_mask == 255, :3] = cutout_image[l_mask == 255, :3]
+
         out_mask[l_mask == 255] = 255
         modify = st.button(f"Save Modification")
 
@@ -549,78 +553,145 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
             out_image[mask_image == 11, :] = model_image[mask_image == 11, :]
             out_image[mask_image == 5, :] = model_image[mask_image == 5, :]
             out_image[mask_image == 6, :] = model_image[mask_image == 6, :]
-            Image.fromarray(out_image.astype(np.uint8)).save('myra-app-main/predict/images/out_image.jpg')
-            Image.fromarray(out_mask.astype(np.uint8)).save('myra-app-main/predict/images/out_mask.jpg')
-            os.remove('myra-app-main/predict/images/out_image_l_mask_ag.jpg')
-            os.remove('myra-app-main/predict/images/out_mask_l_mask_ag.jpg')
+            Image.fromarray(out_image.astype(np.uint8)).save('myra-app-main/predict/images/out_image.png')
+            Image.fromarray(out_mask.astype(np.uint8)).save('myra-app-main/predict/images/out_mask.png')
+            os.remove('myra-app-main/predict/images/out_image_l_mask_ag.png')
+            os.remove('myra-app-main/predict/images/out_mask_l_mask_ag.png')
 
         st.image(out_image.astype(np.uint8))
 
 
     ###########CREATE MASK TO EDIT######################
 
-    st.markdown("**Edit via mask**:")
-
-    col1, col2 = st.columns(2)
-
-    with col1:
-        # Display a file uploader widget
-        uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
-        replace = st.checkbox("replace")
-        if uploaded_file is not None:
-            mask_image = Image.open(uploaded_file)
-            edit_point = streamlit_image_coordinates(
-                    mask_image,
-                    key="cut_out_mask_01")
-            if edit_point is not None:
-
-                if replace:
-                    st.session_state.edit_mask_replace_color = edit_point
-                else:
-                    value_to_append = np.array([edit_point["x"], edit_point["y"]], dtype=np.float32)
-                    st.session_state.edit_mask_selected_points.append(value_to_append)
-                    write_points_and_labels_over_image(
-                        np.array(st.session_state.edit_mask_selected_points), mask_image)
+    st.markdown("**Create Skin masks**:")
 
 
-    with col2:
 
-        controls_models = st.columns(2)
-        default_value = "Select"
+    # Display a file uploader widget
+    uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
 
-        with controls_models[0]:
-            create_mask = st.button("create mask")
+    controls_models = st.columns(5)
+
+    with controls_models[0]:
+      blend_intensity = st.select_slider("Intensity", range(0, 100, 10), key="blend_intensity_mask")
+
+    with controls_models[1]:
+            create_mask = st.button("Black Out")
             if create_mask:
                 l_mask = np.zeros((1024, 768))
                 cutout_points_list = [np.array(st.session_state.edit_mask_selected_points).astype(np.int32)]
 
                 cv2.fillPoly(l_mask, cutout_points_list, 255)
-
-                mask_image = Image.open(uploaded_file)
+                image_path = "myra-app-main/predict/images/mask_image.png"
+                image_path_2 = "myra-app-main/predict/images/out_mask.png"
+                mask_image = Image.open(image_path)
                 mask_image = np.array(mask_image)
-                mask_image[l_mask == 255, :] = 255
+
+                out_mask = Image.open(image_path_2)
+                out_mask = np.array(out_mask).copy()
+
+                mask_image[l_mask == 255, :] = 0
+
+                out_mask[l_mask == 255] = 0
+
+                Image.fromarray(mask_image).save('myra-app-main/predict/images/mask_image.png')
+                Image.fromarray(out_mask).save('myra-app-main/predict/images/out_mask.png')
+                st.session_state.mask_created = True
 
 
-        with controls_models[1]:
 
-            replace = st.button("replace")
+
+
+    with controls_models[2]:
+
+
+            replace = st.button("Replace")
             if replace:
-                color = np.asarray(mask_image)[st.session_state.edit_mask_replace_color["y"], st.session_state.edit_mask_replace_color["x"]]
+                image_path = "myra-app-main/predict/images/mask_image.png"
+
+                mask_image = Image.open(image_path)
+                mask_image = np.array(mask_image)
+                color = mask_image[
+                    st.session_state.edit_mask_replace_color["y"], st.session_state.edit_mask_replace_color["x"]]
                 l_mask = np.zeros((1024, 768))
+
                 cutout_points_list = [np.array(st.session_state.edit_mask_selected_points).astype(np.int32)]
 
                 cv2.fillPoly(l_mask, cutout_points_list, 255)
 
-                mask_image = Image.open(uploaded_file)
-                mask_image = np.array(mask_image)
+
+
                 mask_image[l_mask == 255, :] = color
+                Image.fromarray(mask_image).save('myra-app-main/predict/images/mask_image.png')
+
+
+    with controls_models[3]:
+            clear_mask = st.button("Clear Mask")
+            if clear_mask:
+                st.session_state.edit_mask_selected_points = []
+                st.session_state.mask_created = False
+
+    with controls_models[4]:
+            remove_mask = st.button("Remove")
+            if remove_mask:
+                st.session_state.mask_created = False
+                if (os.path.exists('myra-app-main/predict/images/mask_image.png')):
+                    os.remove('myra-app-main/predict/images/mask_image.png')
+
+
+
+    image_path = "myra-app-main/predict/images/mask_image.png"
+    if(os.path.exists(image_path)):
+            mask_image = Image.open(image_path)
+    else:
+            mask_image = None
+    if uploaded_file is not None:
+            if mask_image is None:
+
+                mask_image = Image.open(uploaded_file)
+                mask_image.save('myra-app-main/predict/images/mask_image.png')
+
+            # Define the weight for each image
+            alpha = blend_intensity / 100  # Weight for the model image
+            beta = (100 - blend_intensity) / 100  # Weight for the cutout image
+            model_image = np.asarray(Image.open(IMAGE_ADDRESS)).copy()
+            x = np.asarray(mask_image).copy()
+            st.write(x.shape)
+
+            blended_image = cv2.addWeighted(model_image[:,:,:3], alpha, x, beta, 0)
+
+            blended_image = Image.fromarray(blended_image.astype(np.uint8))
+            write_points_and_labels_over_image(
+                    np.array(st.session_state.edit_mask_selected_points), blended_image)
+            edit_point = streamlit_image_coordinates(
+                        blended_image,
+                        key="cut_out_mask_01")
+
+            if edit_point and (edit_point["x"] != st.session_state.point_selected_skin_mask["x"] and edit_point["y"] !=
+                                st.session_state.point_selected_skin_mask["y"]):
+
+                    st.session_state.point_selected_skin_mask = edit_point
+
+                    if st.session_state.mask_created:
+                        st.session_state.edit_mask_replace_color = edit_point
+                    else:
+
+                        value_to_append = np.array([edit_point["x"], edit_point["y"]], dtype=np.float32)
+                        st.session_state.edit_mask_selected_points.append(value_to_append)
+                        write_points_and_labels_over_image(
+                            np.array(st.session_state.edit_mask_selected_points), blended_image)
+                        st.rerun()
+            st.image(Image.open('myra-app-main/predict/images/out_mask.png'))
 
 
 
 
 
 
-        st.image(mask_image, caption='Mask Image', use_column_width=True)
+
+
+
+
 
 
 
