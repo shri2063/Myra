@@ -54,7 +54,7 @@ if 'skin_mask_selected_points' not in st.session_state:
     st.session_state.skin_mask_selected_points = []
 if 'skin_mask_replace_color' not in st.session_state:
     st.session_state.skin_mask_replace_color = []
-if 'skin_mask_created' not in st.session_state:
+if 'select_colour' not in st.session_state:
     st.session_state.select_colour = False
 if 'skin_replant_image_arr' not in st.session_state:
     st.session_state.skin_replant_image_arr = []
@@ -524,6 +524,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
 
 
+
     with controls_models[2]:
 
         replant_colour = st.button("Replant with colour")
@@ -631,7 +632,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
 
                 st.session_state.point_selected_skin_mask = edit_point
-
+                st.write(st.session_state.select_colour)
                 if st.session_state.select_colour:
                     st.session_state.skin_mask_replace_color = edit_point
                 else:
@@ -641,8 +642,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
                     if len(st.session_state.skin_mask_selected_points) == 0:
                         st.session_state.skin_mask_selected_points = np.empty((0, 2))
 
-                    st.write(st.session_state.add_skin_mask_point_index)
-                    st.write(st.session_state.skin_mask_selected_points)
+
                     if st.session_state.add_skin_mask_point_index is None:
                         st.session_state.skin_mask_selected_points = \
                             np.vstack([st.session_state.skin_mask_selected_points, value_to_append])
