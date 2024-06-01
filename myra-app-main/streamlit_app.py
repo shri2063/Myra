@@ -55,7 +55,7 @@ if 'skin_mask_selected_points' not in st.session_state:
 if 'skin_mask_replace_color' not in st.session_state:
     st.session_state.skin_mask_replace_color = []
 if 'skin_mask_created' not in st.session_state:
-    st.session_state.skin_mask_created = False
+    st.session_state.select_colour = False
 if 'skin_replant_image_arr' not in st.session_state:
     st.session_state.skin_replant_image_arr = []
 if 'add_skin_mask_point_index' not in st.session_state:
@@ -475,7 +475,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
     replant_skin = st.button("Replant Skin")
 
     if replant_skin:
-        st.session_state.skin_mask_created = False
+        st.session_state.select_colour = False
         if (os.path.exists('myra-app-main/predict/images/skin_image.png')):
             os.remove('myra-app-main/predict/images/skin_image.png')
         if (os.path.exists('myra-app-main/predict/images/replant_image.png')):
@@ -518,7 +518,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
     with controls_models[1]:
         select_colour = st.button("Select Colour")
         if select_colour:
-            st.session_state.skin_mask_created = True
+            st.session_state.select_colour = True
             st.session_state.skin_mask_replace_color = None
 
 
@@ -544,12 +544,16 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
             replant_image_arr[l_mask == 255, :] = color
             st.session_state.skin_replant_image_arr = replant_image_arr
 
+            st.write(st.session_state.skin_replant_image_arr.shape)
+            st.session_state.select_colour = False
+
+
 
     with controls_models[3]:
 
-        replant_colour = st.button("Replant with skin")
-        replant_image_arr = None
-        if replant_colour:
+        replant_skin = st.button("Replant with skin")
+
+        if replant_skin:
             replant_image = "myra-app-main/predict/images/out_image.png"
             replant_image = Image.open(replant_image)
             replant_image_arr = np.array(replant_image).copy()
@@ -567,26 +571,30 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
 
 
+
     with controls_models[4]:
         clear_mask = st.button("Clear Mask")
         if clear_mask:
             st.session_state.skin_mask_selected_points = []
-            st.session_state.skin_mask_created = False
+            st.session_state.select_colour = False
 
     col1, col2 = st.columns(2)
     with col1:
+
 
         skin_image_address = "myra-app-main/predict/images/skin_image.png"
 
         if (os.path.exists(skin_image_address)):
             skin_image = Image.open(skin_image_address)
-            st.session_state.skin_replant_image_arr = np.array(skin_image)
+            if st.session_state.skin_replant_image_arr is None:
+                st.session_state.skin_replant_image_arr = np.array(skin_image)
 
 
 
 
         else:
             skin_image = None
+
 
         if uploaded_file is not None and skin_image is None:
 
@@ -621,9 +629,10 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
             if edit_point and (edit_point["x"] != st.session_state.point_selected_skin_mask["x"] and edit_point["y"] !=
                                st.session_state.point_selected_skin_mask["y"]):
 
+
                 st.session_state.point_selected_skin_mask = edit_point
 
-                if st.session_state.skin_mask_created:
+                if st.session_state.select_colour:
                     st.session_state.skin_mask_replace_color = edit_point
                 else:
 
@@ -651,14 +660,15 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
         with col2:
 
-            save = st.button("save")
 
+            st.image(Image.fromarray(st.session_state.skin_replant_image_arr.astype(np.uint8)))
+            save = st.button("save")
             if save:
                 Image.fromarray(st.session_state.skin_replant_image_arr).save('myra-app-main/predict/images/replant_image.png')
 
 
 
-            st.image(Image.fromarray(st.session_state.skin_replant_image_arr.astype(np.uint8)))
+
 
     # Create a button
 
