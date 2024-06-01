@@ -1,5 +1,6 @@
 import streamlit as st
 import os
+from PIL import Image
 # Define the scope for Google Drive API
 
 
@@ -40,30 +41,46 @@ CUTOUT_RANGE = {'left_up', 'left_low', 'backbone', 'right_up', 'right_low'}
 
 
 def remove_file():
-    if (os.path.exists('myra-app-main/predict/images/out_image.jpg')):
-        os.remove('myra-app-main/predict/images/out_image.jpg')
-    if (os.path.exists('myra-app-main/predict/images/out_image_transit.jpg')):
-        os.remove('myra-app-main/predict/images/out_image_transit.jpg')
+    if (os.path.exists('myra-app-main/predict/images/out_image.png')):
+        os.remove('myra-app-main/predict/images/out_image.png')
+    if (os.path.exists('myra-app-main/predict/images/out_image_transit.png')):
+        os.remove('myra-app-main/predict/images/out_image_transit.png')
     if (os.path.exists('myra-app-main/predict/images/pg_output.png')):
         os.remove('myra-app-main/predict/images/pg_output.png')
-    if (os.path.exists('myra-app-main/predict/images/cutouts/im_backbone.jpg')):
-        os.remove('myra-app-main/predict/images/cutouts/im_backbone.jpg')
-    if (os.path.exists('myra-app-main/predict/images/cutouts/im_left_low.jpg')):
-        os.remove('myra-app-main/predict/images/cutouts/im_left_low.jpg')
-    if (os.path.exists('myra-app-main/predict/images/cutouts/im_left_up.jpg')):
-        os.remove('myra-app-main/predict/images/cutouts/im_left_up.jpg')
-    if (os.path.exists('myra-app-main/predict/images/cutouts/im_right_low.jpg')):
-        os.remove('myra-app-main/predict/images/cutouts/im_right_low.jpg')
-    if (os.path.exists('myra-app-main/predict/images/cutouts/im_right_up.jpg')):
-        os.remove('myra-app-main/predict/images/cutouts/im_right_up.jpg')
-    if (os.path.exists('myra-app-main/predict/images/cutouts/im_right_up.jpg')):
-        os.remove('myra-app-main/predict/images/cutouts/im_right_up.jpg')
-    if (os.path.exists('myra-app-main/predict/images/out_image_l_mask_ag.jpg')):
-        os.remove('myra-app-main/predict/images/out_image_l_mask_ag.jpg')
-    if (os.path.exists('myra-app-main/predict/images/out_mask.jpg')):
-        os.remove('myra-app-main/predict/images/out_mask.jpg')
-    if (os.path.exists('myra-app-main/predict/images/out_mask_l_mask_ag.jpg')):
-        os.remove('myra-app-main/predict/images/out_mask_l_mask_ag.jpg')
+    if (os.path.exists('myra-app-main/predict/images/cutouts/im_backbone.png')):
+        os.remove('myra-app-main/predict/images/cutouts/im_backbone.png')
+    if (os.path.exists('myra-app-main/predict/images/cutouts/im_left_low.png')):
+        os.remove('myra-app-main/predict/images/cutouts/im_left_low.png')
+    if (os.path.exists('myra-app-main/predict/images/cutouts/im_left_up.png')):
+        os.remove('myra-app-main/predict/images/cutouts/im_left_up.png')
+    if (os.path.exists('myra-app-main/predict/images/cutouts/im_right_low.png')):
+        os.remove('myra-app-main/predict/images/cutouts/im_right_low.png')
+    if (os.path.exists('myra-app-main/predict/images/cutouts/im_right_up.png')):
+        os.remove('myra-app-main/predict/images/cutouts/im_right_up.png')
+    if (os.path.exists('myra-app-main/predict/images/cutouts/im_right_up.png')):
+        os.remove('myra-app-main/predict/images/cutouts/im_right_up.png')
+    if (os.path.exists('myra-app-main/predict/images/out_image_l_mask_ag.png')):
+        os.remove('myra-app-main/predict/images/out_image_l_mask_ag.png')
+    if (os.path.exists('myra-app-main/predict/images/out_mask.png')):
+        os.remove('myra-app-main/predict/images/out_mask.png')
+    if (os.path.exists('myra-app-main/predict/images/out_mask_l_mask_ag.png')):
+        os.remove('myra-app-main/predict/images/out_mask_l_mask_ag.png')
+    if (os.path.exists('myra-app-main/predict/images/skin_image.png')):
+        os.remove('myra-app-main/predict/images/skin_image.png')
 
-#remove_file()
+def remove_files_out_image():
+    if (os.path.exists('myra-app-main/predict/images/out_image.png')):
+        os.remove('myra-app-main/predict/images/out_image.png')
+    if (os.path.exists('myra-app-main/predict/images/out_image_transit.png')):
+        os.remove('myra-app-main/predict/images/out_image_transit.png')
+    if (os.path.exists('myra-app-main/predict/images/pg_output.png')):
+        os.remove('myra-app-main/predict/images/pg_output.png')
+    if (os.path.exists('myra-app-main/predict/images/out_image_l_mask_ag.png')):
+        os.remove('myra-app-main/predict/images/out_image_l_mask_ag.png')
+    if (os.path.exists('myra-app-main/predict/images/out_mask.png')):
+        os.remove('myra-app-main/predict/images/out_mask.png')
+    if (os.path.exists('myra-app-main/predict/images/out_mask_l_mask_ag.png')):
+        os.remove('myra-app-main/predict/images/out_mask_l_mask_ag.png')
+
+
 

@@ -7,7 +7,7 @@ import torch
 
 sys.path.append('myra-app-main/predict')
 from predict_pos_keypoints import adj_mx_from_edges, edges_c, edges_s, GCN_2
-
+from typing import Tuple
 sys.path.append('myra-app-main/datasets')
 import streamlit as st
 import matplotlib.pyplot as plt
@@ -15,6 +15,7 @@ from os import listdir
 import pandas as pd
 import string
 import random
+import cv2
 
 #### CATALOG FUNCTIONS ###########
 directory_models = r'myra-app-main/data/image'
@@ -121,6 +122,39 @@ def write_cover_areas_for_pointer_and_labels(arr: np.ndarray, image: Image, cove
                             int(point[1]) - text_height // 2 + int(text_height))
 
         cover_area_label_list.append(cover_area_label)
+
+def process_cutout(cutout_image:np.ndarray, model_image: np.ndarray):
+    # Make sure both images have the same dimensions
+    cutout_image_processed = cv2.resize(cutout_image, (model_image.shape[1], model_image.shape[0]))
+
+    # Convert the image to grayscale
+    gray_image = cv2.cvtColor(cutout_image_processed, cv2.COLOR_BGR2GRAY)
+
+    # Threshold the grayscale image to create a mask for white pixels
+    _, mask = cv2.threshold(gray_image, 240, 255, cv2.THRESH_BINARY)
+
+    # Invert the mask
+    mask = cv2.bitwise_not(mask)
+
+    # Set white pixels to black in the original image using the mask
+    cutout_image_processed[mask == 0] = [100, 100, 100]
+    return cutout_image_processed
+
+def initialize_out_image_and_mask(out_image_arr: np.ndarray, model_image_arr : np.ndarray,
+                                  mask_image_arr: np.ndarray, ag_mask_arr: np.ndarray) -> Tuple[np.ndarray, np.ndarray]:
+
+    out_image_arr[ag_mask_arr == 255, :3] = 0
+    out_image_arr[mask_image_arr == 11, :] = model_image_arr[mask_image_arr == 11, :]
+    out_image_arr[mask_image_arr == 5, :] = model_image_arr[mask_image_arr == 5, :]
+    out_image_arr[mask_image_arr == 6, :] = model_image_arr[mask_image_arr == 6, :]
+
+    out_mask_arr = 255 - ag_mask_arr
+    out_mask_arr = out_mask_arr.copy()
+
+    out_mask_arr[mask_image_arr == 11] = 255
+    out_mask_arr[mask_image_arr == 5] = 255
+    out_mask_arr[mask_image_arr == 6] = 255
+    return out_image_arr,out_mask_arr
 
 
 def write_points_and_labels_over_image(arr: np.ndarray, image: Image, labels: {} = None) -> Image:
