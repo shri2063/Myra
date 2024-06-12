@@ -56,8 +56,15 @@ if 'select_colour' not in st.session_state:
     st.session_state.select_colour = False
 if 'skin_replant_image_arr' not in st.session_state:
     st.session_state.skin_replant_image_arr = None
+if 'skin_mask_selected_points_history' not in st.session_state:
+    st.session_state.skin_mask_selected_points_history = []
+
 if 'add_skin_mask_point_index' not in st.session_state:
     st.session_state.add_skin_mask_point_index = None
+if 'selected_skin_mask' not in st.session_state:
+    st.session_state.selected_skin_mask = "default"
+if 'skin_out_image_toggle' not in st.session_state:
+    st.session_state.skin_out_image_toggle = False
 
 
 def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
@@ -71,6 +78,12 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
     SKIN_MASK_ADDRESS = f'myra-app-main/data/skin_mask/{st.session_state.selected_model}.png'
     PARSE_ADDRESS = f'myra-app-main/data/parse/{st.session_state.selected_model}.png'
     PARSE_AG_ADDRESS = f'myra-app-main/data/parse_ag/{st.session_state.selected_model}.png'
+
+    IMAGES_MAPPING = {
+        'model_image': IMAGE_ADDRESS,
+        'out_image': 'myra-app-main/predict/images/out_image.png',
+        'parse':PARSE_ADDRESS
+    }
 
     ######CREATE CATALOG############
 
@@ -280,12 +293,12 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
         )
 
-        st.session_state.cutout_list['backbone'] = st.session_state.key_points_model[CUTOUT_MAPPING.get('backbone', [])]
-        st.session_state.cutout_list['left_up'] = st.session_state.key_points_model[CUTOUT_MAPPING.get('left_up', [])]
-        st.session_state.cutout_list['left_low'] = st.session_state.key_points_model[CUTOUT_MAPPING.get('left_low', [])]
-        st.session_state.cutout_list['right_up'] = st.session_state.key_points_model[CUTOUT_MAPPING.get('right_up', [])]
-        st.session_state.cutout_list['right_low'] = st.session_state.key_points_model[
-            CUTOUT_MAPPING.get('right_low', [])]
+        #st.session_state.cutout_list['backbone'] = st.session_state.key_points_model[CUTOUT_MAPPING.get('backbone', [])]
+        #st.session_state.cutout_list['left_up'] = st.session_state.key_points_model[CUTOUT_MAPPING.get('left_up', [])]
+        #st.session_state.cutout_list['left_low'] = st.session_state.key_points_model[CUTOUT_MAPPING.get('left_low', [])]
+        #st.session_state.cutout_list['right_up'] = st.session_state.key_points_model[CUTOUT_MAPPING.get('right_up', [])]
+        #st.session_state.cutout_list['right_low'] = st.session_state.key_points_model[
+        #    CUTOUT_MAPPING.get('right_low', [])]
 
     cutout_files = os.listdir('myra-app-main/predict/images/cutouts')
     if len(cutout_files) > 0 and st.session_state.key_points_model is not None:
@@ -298,7 +311,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
                 wrap_blend_intensity = st.select_slider("Intensity", range(10, 100, 10), key="wrap_blend_intensity")
 
             with controls_models[1]:
-                wrap_selected_cutout = st.selectbox("cutouts", CUTOUT_RANGE, index=4, key="wrap__dropdown")
+                wrap_selected_cutout = st.selectbox("cutouts", CUTOUT_RANGE, index=0, key="wrap__dropdown")
 
             # Load the images
             model_image = Image.open(IMAGE_ADDRESS)
@@ -350,16 +363,20 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
             with controls_models[1]:
 
                 repaint_selected_cutout = st.selectbox("cutouts", CUTOUT_RANGE, index=0, key="repaint_cutouts_dropdown")
+                revised_points = st.button(f"Revise pts for {repaint_selected_cutout}")
+                if revised_points:
+                    st.session_state.cutout_list[repaint_selected_cutout] = st.session_state.key_points_model[
+                        CUTOUT_MAPPING.get(repaint_selected_cutout, [])]
+
 
             with controls_models[2]:
-
 
                 repaint_selected_point_del = st.selectbox("Delete any keypoint",
                                                           [default_value] + list(range(0, len(
                                                               st.session_state.cutout_list[repaint_selected_cutout]))),
                                                           index=0, key="remove_cutout_keypoint")
 
-                if  repaint_selected_point_del != default_value:
+                if repaint_selected_point_del != default_value:
                     st.write(f"Delete: {repaint_selected_point_del}")
 
                     st.session_state.cutout_list[repaint_selected_cutout] = np.delete(
@@ -372,7 +389,6 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
                                               index=min(st.session_state.last_selected_cutout_pt + 1,
                                                         len(st.session_state.cutout_list[repaint_selected_cutout])),
                                               key="add_cutout_keypoint")
-
 
             repaint_cutout = [file for file in cutout_files if repaint_selected_cutout in file]
             repaint_cutout_image = np.asarray(
@@ -393,7 +409,6 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
             if os.path.exists('myra-app-main/predict/images/out_image.png'):
 
-
                 out_image_arr = np.asarray(Image.open('myra-app-main/predict/images/out_image.png')).copy()
                 out_mask_arr = np.asarray(Image.open('myra-app-main/predict/images/out_mask.png')).copy()
 
@@ -408,13 +423,11 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
                 out_image_arr, out_mask_arr = initialize_out_image_and_mask(out_image_arr,
                                                                             model_image_arr, mask_image_arr,
                                                                             ag_mask_arr)
-                skin_mask = np.asarray(Image.open(SKIN_MASK_ADDRESS))[:,:,0]
+                skin_mask = np.asarray(Image.open(SKIN_MASK_ADDRESS))[:, :, 0]
 
-                out_image_arr[skin_mask == 255, :3] =  model_image_arr[skin_mask == 255,:3]
-
+                out_image_arr[skin_mask == 255, :3] = model_image_arr[skin_mask == 255, :3]
 
                 out_mask_arr[skin_mask == 255] = 255
-
 
             l_mask = np.zeros((1024, 768))
             cutout_points_list = [st.session_state.cutout_list[repaint_selected_cutout].astype(np.int32)]
@@ -424,7 +437,6 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
             out_image_arr[l_mask == 255, :3] = 0
             out_mask_arr[l_mask == 255] = 0
             if not os.path.exists('myra-app-main/predict/images/out_image_l_mask_ag.png'):
-
                 Image.fromarray(out_image_arr.astype(np.uint8)).save(
                     'myra-app-main/predict/images/out_image_l_mask_ag.png')
             if not os.path.exists('myra-app-main/predict/images/out_mask_l_mask_ag.png'):
@@ -460,9 +472,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
             if os.path.exists('myra-app-main/predict/images/out_mask_l_mask_ag.png'):
                 out_mask = np.asarray(Image.open('myra-app-main/predict/images/out_mask_l_mask_ag.png')).copy()
 
-
-
-            out_image[l_mask == 255, :3] = repaint_cutout_image[l_mask == 255,:3]
+            out_image[l_mask == 255, :3] = repaint_cutout_image[l_mask == 255, :3]
 
             out_mask[l_mask == 255] = 255
             modify = st.button(f"Save Modification")
@@ -471,12 +481,12 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
                 model_image = np.asarray(Image.open(IMAGE_ADDRESS)).copy()
                 mask_image = np.asarray(Image.open(PARSE_ADDRESS))
 
-                #out_image[mask_image == 11, :] = model_image[mask_image == 11, :]
-                st.image(out_image.astype(np.uint8))
-                if repaint_selected_cutout == 'backbone':
-                    st.image(mask_image)
-                    out_image[mask_image == 5, :] = model_image[mask_image == 5, :]
-                    out_image[mask_image == 6, :] = model_image[mask_image == 6, :]
+                # out_image[mask_image == 11, :] = model_image[mask_image == 11, :]
+
+                #if repaint_selected_cutout == 'backbone':
+
+                   # out_image[mask_image == 5, :] = model_image[mask_image == 5, :]
+                   # out_image[mask_image == 6, :] = model_image[mask_image == 6, :]
                 Image.fromarray(out_image.astype(np.uint8)).save('myra-app-main/predict/images/out_image.png')
                 Image.fromarray(out_mask.astype(np.uint8)).save('myra-app-main/predict/images/out_mask.png')
                 os.remove('myra-app-main/predict/images/out_image_l_mask_ag.png')
@@ -494,6 +504,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
             os.remove('myra-app-main/predict/images/skin_image.png')
         if (os.path.exists('myra-app-main/predict/images/replant_image.png')):
             os.remove('myra-app-main/predict/images/replant_image.png')
+        st.session_state.skin_replant_image_arr = None
 
     # Display a file uploader widget
     uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
@@ -504,36 +515,83 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
         skin_blend_intensity = st.select_slider("Intensity", range(0, 100, 10), key="skin_blend_intensity")
         default_value = "Select"
         skin_mask_selected_point_del = st.selectbox("Delete any keypoint",
-                                                  [default_value] + list(range(0, len(
-                                                      st.session_state.skin_mask_selected_points) + 2)),
-                                                  index=0, key="remove_skin_mask_keypoint")
-
+                                                    [default_value] + list(range(0, len(
+                                                        st.session_state.skin_mask_selected_points) + 2)),
+                                                    index=0, key="remove_skin_mask_keypoint")
 
         if skin_mask_selected_point_del != default_value:
             st.write(f"Delete: {skin_mask_selected_point_del}")
             st.session_state.selected_skin_mask_delete_pt = skin_mask_selected_point_del
             st.session_state.skin_mask_selected_points = np.delete(
                 st.session_state.skin_mask_selected_points, skin_mask_selected_point_del, axis=0)
-            st.rerun()
-
+            #st.rerun()
 
         add_skin_point_index = st.selectbox("Add point at Index",
-                                      [default_value] + list(
-                                          range(0, 100)),
-                                      index=0,
-                                      key="add_skin_mask_keypoint")
-
+                                            [default_value] + list(
+                                                range(0, 100)),
+                                            index=0,
+                                            key="add_skin_mask_keypoint")
 
         if add_skin_point_index != default_value:
             st.session_state.add_skin_mask_point_index = add_skin_point_index
-
-
 
     with controls_models[1]:
         select_colour = st.button("Select Colour")
         if select_colour:
             st.session_state.select_colour = True
             st.session_state.skin_mask_replace_color = None
+
+
+        back_image = st.selectbox("Back image", BACK_IMAGES, index=0, key="back_image")
+        skin_image = st.selectbox("Front Image", FRONT_IMAGES, index=2, key="front_image")
+        if back_image != "uploaded_image":
+            try:
+                back_image = Image.open(IMAGES_MAPPING[back_image])
+                back_image_arr = np.array(back_image)
+            except Exception as e:
+                st.write(str(e))
+        else:
+            if uploaded_file is None:
+                st.write("PLEASE SELECT A FILE FIRST")
+            back_image = Image.open(uploaded_file)
+            expected_shape = (1024, 768, 3)
+            back_image_arr = np.array(back_image)
+            if back_image_arr.shape != expected_shape:
+                back_image = back_image.resize((expected_shape[1], expected_shape[0]))
+                back_image_arr = np.asarrayback_image()
+
+
+        back_image_arr = convert_to_rgb(back_image_arr, COLORMAP)
+
+
+        if skin_image != "uploaded_image":
+            try:
+                skin_image = Image.open(IMAGES_MAPPING[skin_image])
+                skin_image_arr = np.asarray(skin_image)
+            except Exception as e:
+                st.write(str(e))
+
+
+        else:
+
+            if uploaded_file is None:
+                st.write("PLEASE SELECT A FILE FIRST")
+            skin_image = Image.open(uploaded_file)
+
+            expected_shape = (1024, 768, 3)
+            skin_image_arr = np.array(skin_image)
+
+            if skin_image_arr.shape != expected_shape:
+
+                skin_image = skin_image.resize((expected_shape[1], expected_shape[0]))
+                skin_image_arr = np.asarray(skin_image)
+
+
+
+
+        skin_image_arr = convert_to_rgb(skin_image_arr, COLORMAP)
+        if st.session_state.skin_replant_image_arr is None:
+            st.session_state.skin_replant_image_arr = skin_image_arr
 
 
 
@@ -543,143 +601,111 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
         replant_colour = st.button("Replant with colour")
         if replant_colour:
-
+            st.session_state.skin_out_image_toggle = False
             replant_image_arr = st.session_state.skin_replant_image_arr
-            if  st.session_state.skin_mask_replace_color is not None:
+            if st.session_state.skin_mask_replace_color is not None:
                 color = replant_image_arr[
-                st.session_state.skin_mask_replace_color["y"], st.session_state.skin_mask_replace_color["x"]]
+                    st.session_state.skin_mask_replace_color["y"], st.session_state.skin_mask_replace_color["x"]]
             else:
-                color = np.array([0,0,0])
+                color = np.array([0, 0, 0])
             l_mask = np.zeros((1024, 768))
 
             skin_mask_cutout_points_list = [np.array(st.session_state.skin_mask_selected_points).astype(np.int32)]
 
             cv2.fillPoly(l_mask, skin_mask_cutout_points_list, 255)
 
-            if len(replant_image_arr.shape)> 2:
+            if len(replant_image_arr.shape) > 2:
 
-                st.write(color)
-
+                l_mask = l_mask.astype(np.uint8)
+                replant_image_arr = replant_image_arr.astype(np.uint8)
                 replant_image_arr[l_mask == 255, :3] = color[:3]
+                st.write("hi")
+
 
             else:
                 replant_image_arr[l_mask == 255] = color[0]
 
-            if  np.all(color == 0):
-
-                out_mask_arr = np.array(Image.open('myra-app-main/predict/images/out_mask.png')).copy()
-                out_mask_arr[l_mask == 255] = 0
-                Image.fromarray(out_mask_arr.astype(np.uint8)).save('myra-app-main/predict/images/out_mask_replant.png')
+            if np.all(color == 0):
+                replant_image_arr[l_mask == 255] = 0
 
 
             st.session_state.skin_replant_image_arr = replant_image_arr
 
-
-
             st.session_state.select_colour = False
-
 
     with controls_models[3]:
-        clear_mask = st.button("Clear Mask")
-        if clear_mask:
+
+        clear  = st.button("clear Mask")
+        if clear:
             st.session_state.skin_mask_selected_points = []
             st.session_state.select_colour = False
+
+
+        save_and_clear = st.button("Save and Clear Mask")
+
+        if save_and_clear:
+            st.session_state.skin_mask_selected_points_history.insert(0, st.session_state.skin_mask_selected_points)
+            st.session_state.skin_mask_selected_points = []
+            st.session_state.select_colour = False
+
+        if len(st.session_state.skin_mask_selected_points_history) > 0:
+            default_value = "defaut"
+
+            select_mask = st.selectbox("Select Mask",
+                                                  [default_value] + list(range(0,
+                                                      len(st.session_state.skin_mask_selected_points_history))),
+                                                  index=0, key="select_mask")
+
+            if select_mask != default_value and  st.session_state.selected_skin_mask != select_mask:
+                st.session_state.selected_skin_mask = select_mask
+
+
+                st.session_state.skin_mask_selected_points = st.session_state.skin_mask_selected_points_history[select_mask]
+                #st.rerun()
+
+
+
+
+
+
 
     with controls_models[4]:
 
         replant_skin = st.button("Replant with skin")
 
-        if replant_skin:
-            replant_image = "myra-app-main/predict/images/out_image.png"
-            replant_image = Image.open(replant_image)
-            replant_image_arr = np.array(replant_image).copy()
+        if replant_skin :
+            if not st.session_state.skin_out_image_toggle:
+                replant_image = "myra-app-main/predict/images/out_image.png"
+                replant_image = Image.open(replant_image)
+                st.session_state.skin_replant_image_arr = np.array(replant_image).copy()
+                st.session_state.skin_out_image_toggle = True
 
-            skin_image = "myra-app-main/predict/images/skin_image.png"
-            skin_image = Image.open(skin_image)
-            skin_image_arr = np.array(skin_image)
+
 
             l_mask = np.zeros((1024, 768))
 
             skin_mask_cutout_points_list = [np.array(st.session_state.skin_mask_selected_points).astype(np.int32)]
             cv2.fillPoly(l_mask, skin_mask_cutout_points_list, 255)
-            replant_image_arr[l_mask == 255, :3] = skin_image_arr[l_mask == 255, :3]
-            Image.fromarray(replant_image_arr.astype(np.uint8)).save('myra-app-main/predict/images/out_image.png')
-            st.session_state.skin_replant_image_arr = replant_image_arr
 
-
-
+            st.session_state.skin_replant_image_arr[l_mask == 255, :3] = skin_image_arr[l_mask == 255, :3]
 
 
 
     col1, col2 = st.columns(2)
     with col1:
-
-
-        skin_image_address = "myra-app-main/predict/images/skin_image.png"
-        st.write("hi")
-
-        if (os.path.exists(skin_image_address)):
-            skin_image = Image.open(skin_image_address)
-            if st.session_state.skin_replant_image_arr is None:
-
-                st.session_state.skin_replant_image_arr = np.array(skin_image)
-
-
-
-
-        else:
-            skin_image = None
-
-
-        if uploaded_file is not None and skin_image is None:
-
-            skin_image = Image.open(uploaded_file)
-            expected_shape = (1024, 768, 3)
-            if np.asarray(skin_image).shape != expected_shape:
-                skin_image = skin_image.resize((expected_shape[1], expected_shape[0]))
-            skin_image.save('myra-app-main/predict/images/skin_image.png')
-            skin_image.save('myra-app-main/predict/images/replant_image.png')
-            st.session_state.skin_replant_image_arr = np.array(skin_image)
-
-        st.write("hi")
         if skin_image is not None:
-         # Define the weight for each image
+
+            # Define the weight for each image
             alpha = skin_blend_intensity / 100  # Weight for the model image
             beta = (100 - skin_blend_intensity) / 100  # Weight for the cutout image
-            model_image = Image.open(IMAGE_ADDRESS)
 
 
-            skin_image = np.array(skin_image)
-            if len(skin_image.shape) == 2:
-                # Define the colormap for the labels
-                colormap = {
-                    1: [255, 0, 0],  # Red
-                    2: [0, 255, 0],  # Green
-                    3: [0, 0, 255],  # Blue
-                    4: [255, 255, 0],  # Yellow
-                    5: [255, 0, 255],  # Magenta
-                    6: [0, 255, 255]  # Cyan
-                }
-                # Create an empty RGB image array
-                rgb_image_array = np.zeros((skin_image.shape[0], skin_image.shape[1], 3),
-                                           dtype=np.uint8)
-
-                # Map the labels to colors
-                for label, color in colormap.items():
-                    rgb_image_array[skin_image == label] = color
 
 
-                skin_image = rgb_image_array
-                if len(st.session_state.skin_replant_image_arr.shape) == 2:
-                    st.session_state.skin_replant_image_arr = np.array(skin_image)
-
-
-            skin_blended_image = cv2.addWeighted(np.asarray(model_image)[:, :, :3], alpha,
-                                               skin_image[:,:,:3].astype(np.uint8), beta, 0)
-
+            skin_blended_image = cv2.addWeighted(back_image_arr[:, :, :3], alpha,
+                                                 skin_image_arr[:, :, :3].astype(np.uint8), beta, 0)
 
             skin_blended_image = Image.fromarray(skin_blended_image.astype(np.uint8))
-
 
             write_points_and_labels_over_image(
                 np.array(st.session_state.skin_mask_selected_points), skin_blended_image)
@@ -690,7 +716,6 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
             if edit_point and (edit_point["x"] != st.session_state.point_selected_skin_mask["x"] and edit_point["y"] !=
                                st.session_state.point_selected_skin_mask["y"]):
-
 
                 st.session_state.point_selected_skin_mask = edit_point
                 st.write(st.session_state.select_colour)
@@ -703,43 +728,41 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
                     if len(st.session_state.skin_mask_selected_points) == 0:
                         st.session_state.skin_mask_selected_points = np.empty((0, 2))
 
-
                     if st.session_state.add_skin_mask_point_index is None:
                         st.session_state.skin_mask_selected_points = \
                             np.vstack([st.session_state.skin_mask_selected_points, value_to_append])
                     else:
                         st.session_state.skin_mask_selected_points = np.insert(
                             st.session_state.skin_mask_selected_points,
-                            st.session_state.add_skin_mask_point_index ,
+                            st.session_state.add_skin_mask_point_index,
                             [value_to_append], axis=0)
                         st.session_state.add_skin_mask_point_index = None
 
                     write_points_and_labels_over_image(
-                            np.array(st.session_state.skin_mask_selected_points), skin_blended_image)
+                        np.array(st.session_state.skin_mask_selected_points), skin_blended_image)
                     st.rerun()
-
 
         with col2:
 
-
             save = st.button("save")
 
-            skin_image = Image.open(uploaded_file)
+
 
 
             if save:
-                st.write("hi1")
+
                 if len(np.asarray(skin_image).shape) == 2:
-                    st.write("hi2")
+
                     # Create a reverse colormap from RGB to label
-                    reverse_colormap = {tuple(v): k for k, v in colormap.items()}
-                    st.write("hi2")
+                    reverse_colormap = {tuple(v): k for k, v in COLORMAP.items()}
+
                     # Create an empty labeled image array
-                    labeled_image_array = np.zeros((st.session_state.skin_replant_image_arr.shape[0], st.session_state.skin_replant_image_arr.shape[1]), dtype=np.uint8)
+                    labeled_image_array = np.zeros((st.session_state.skin_replant_image_arr.shape[0],
+                                                    st.session_state.skin_replant_image_arr.shape[1]), dtype=np.uint8)
 
                     # Map the RGB image back to labels
                     for rgb_color, label in reverse_colormap.items():
-                        st.write(rgb_color , label)
+
                         mask = np.all(st.session_state.skin_replant_image_arr == rgb_color, axis=-1)
                         labeled_image_array[mask] = label
 
@@ -747,16 +770,12 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
                     labeled_image = Image.fromarray(labeled_image_array)
 
-                    labeled_image.save('myra-app-main/predict/images/00911_00.png')
+                    labeled_image.save('myra-app-main/predict/images/replant_image.png')
                 else:
+
                     Image.fromarray(st.session_state.skin_replant_image_arr).save(
                         'myra-app-main/predict/images/replant_image.png')
             st.image(Image.fromarray(st.session_state.skin_replant_image_arr.astype(np.uint8)))
-
-
-
-
-
 
     # Create a button
 

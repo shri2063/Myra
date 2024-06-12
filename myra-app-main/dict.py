@@ -37,7 +37,10 @@ CUTOUT_MAPPING = {
     'right_up': right_up,
     'right_low': right_low
 }
-CUTOUT_RANGE = {'left_up', 'left_low', 'backbone', 'right_up', 'right_low'}
+CUTOUT_RANGE = ['backbone', 'left_up', 'left_low', 'right_up', 'right_low']
+BACK_IMAGES = ['model_image', 'out_image', 'uploaded_image', 'parse']
+FRONT_IMAGES = ['model_image', 'out_image', 'uploaded_image', 'parse']
+
 
 
 def remove_file():
@@ -82,5 +85,13 @@ def remove_files_out_image():
     if (os.path.exists('myra-app-main/predict/images/out_mask_l_mask_ag.png')):
         os.remove('myra-app-main/predict/images/out_mask_l_mask_ag.png')
 
-
+# Define the colormap for the labels
+COLORMAP = {
+            1: [255, 0, 0],  # Red
+            2: [0, 255, 0],  # Green
+            3: [0, 0, 255],  # Blue
+            4: [255, 255, 0],  # Yellow
+            5: [255, 0, 255],  # Magenta
+            6: [0, 255, 255]  # Cyan
+                }
 

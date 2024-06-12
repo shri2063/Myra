@@ -287,3 +287,16 @@ def generate_random_string(length):
     characters = string.ascii_uppercase + string.digits
     # Generate a random string of given length
     return ''.join(random.choices(characters, k=length))
+
+def convert_to_rgb(image, colormap):
+    """
+    Convert a labeled grayscale image to RGB using the provided colormap.
+    """
+
+    if len(image.shape) == 2:
+
+        rgb_image = np.zeros((image.shape[0], image.shape[1], 3), dtype=np.uint8)
+        for label, color in colormap.items():
+            rgb_image[image == label] = color
+        return rgb_image
+    return image
