@@ -43,11 +43,17 @@ if 'selected_cutout' not in st.session_state:
     st.session_state.selected_cutout = None
 if 'cutout_list' not in st.session_state:
     st.session_state.cutout_list = {}
+
+### History
 if 'last_selected_cutout_pt' not in st.session_state:
     st.session_state.last_selected_cutout_pt = 0
+if 'last_selected_model_pt' not in st.session_state:
+    st.session_state.last_selected_model_pt = {}
+if 'last_selected_tshirt_pt' not in st.session_state:
+    st.session_state.last_selected_tshirt_pt = {}
 
 
-
+### SKIN MASKS
 if 'skin_mask_selected_points' not in st.session_state:
     st.session_state.skin_mask_selected_points = []
 if 'skin_mask_replace_color' not in st.session_state:
@@ -177,42 +183,97 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
     #############PLOT KEYPOINTS OVER TSHIRT#############
 
+    refresh = st.button("Refresh App")
+    if refresh:
+        remove_file()
     # Create an input text box to select a keypoint whose position needs to be changed
+    st.warning("WARNING:  ONCE CLICKED ALL PREVIOUS KEPYPOINTS DATA WOULD BE ERASED")
 
-    node = st.text_input('Enter node position to change')
-    if node:
-        st.write("You are modifying Node " + node + "   Please click on new position")
+    col1, col2 = st.columns(2)
+    with col1:
+        st.text("")
+        st.text("")
+        st.text("")
+        st.text("")
+        st.text("")
+        st.text("")
+        st.text("")
+        st.text("")
+        st.text("")
+        st.text("")
+        node = st.text_input('Enter node position to change')
+        if node:
+            st.write("You are modifying Node " + node + "   Please click on new position")
 
-    if os.path.exists(CLOTH_ADDRESS):
+        tshirt_kp_seg = st.selectbox("Keypoints Segments", CUTOUT_RANGE, index=None, key="tshirt_kp_seg")
 
-        if st.session_state.key_points_tshirt is None:
-            with open(c_pos_json, 'r') as file:
-                json_list = json.load(file)
-                kp_arr = np.array(json_list["long"]) * 250
-                st.session_state.key_points_tshirt = kp_arr
+        back_tshirt = st.button("Undo Last Edited Tshirt Point")
+        if back_tshirt:
+            tshirt_node_last = st.session_state.last_selected_tshirt_pt['node']
+            x = st.session_state.last_selected_tshirt_pt['x']
+            y = st.session_state.last_selected_tshirt_pt['y']
 
-        tshirt_image = Image.open(CLOTH_ADDRESS)
-        write_points_and_labels_over_image(st.session_state.key_points_tshirt, tshirt_image, None)
+            st.session_state.key_points_tshirt[int(tshirt_node_last)][0] = x
+            st.session_state.key_points_tshirt[int(tshirt_node_last)][1] = y
 
-        ## Streamlit Image coordinate is a spl library in streamlit that captures point coordinates
-        ## of a pixel clicked by mouse over the image
-        value = streamlit_image_coordinates(
-            tshirt_image,
-            key="kpt",
-        )
 
-        if value and (value["x"] != st.session_state.point_selected_tshirt["x"] and value["y"] !=
-                      st.session_state.point_selected_tshirt["y"]):
+    with col2:
 
-            st.session_state.point_selected_tshirt = value
-            if node:
-                st.session_state.key_points_tshirt[int(node)][0] = value["x"]
-                st.session_state.key_points_tshirt[int(node)][1] = value["y"]
-                st.rerun()
+
+        if os.path.exists(CLOTH_ADDRESS):
+
+            if st.session_state.key_points_tshirt is None:
+                with open(c_pos_json, 'r') as file:
+                    json_list = json.load(file)
+                    kp_arr = np.array(json_list["long"]) * 250
+                    st.session_state.key_points_tshirt = kp_arr
+
+            tshirt_image = Image.open(CLOTH_ADDRESS)
+
+
+            if tshirt_kp_seg != None:
+
+
+                write_points_and_labels_over_image( st.session_state.key_points_tshirt[1:][CUTOUT_MAPPING[tshirt_kp_seg]],
+                                                   tshirt_image, CUTOUT_MAPPING[tshirt_kp_seg])
             else:
-                st.sidebar.write("Please select a node first")
+                write_points_and_labels_over_image( st.session_state.key_points_tshirt[1:], tshirt_image, None)
 
-            # out_image = cloudinary_upload.uploadImage('myra-app-main/upload_images/image.jpg', 'tshirt')
+
+            ## Streamlit Image coordinate is a spl library in streamlit that captures point coordinates
+            ## of a pixel clicked by mouse over the image
+            value = streamlit_image_coordinates(
+                tshirt_image,
+                key="kpt",
+            )
+
+            if value and (value["x"] != st.session_state.point_selected_tshirt["x"] and value["y"] !=
+                          st.session_state.point_selected_tshirt["y"]):
+
+
+                st.session_state.point_selected_tshirt = value
+                if node:
+
+                    st.session_state.last_selected_tshirt_pt['node'] = int(node) + 1
+
+                    st.session_state.last_selected_tshirt_pt['x'] = st.session_state.key_points_tshirt[int(node) + 1][0]
+
+                    st.session_state.last_selected_tshirt_pt['y'] = st.session_state.key_points_tshirt[int(node) + 1][1]
+
+                    st.write( st.session_state.key_points_tshirt[int(node) + 1])
+                    st.session_state.key_points_tshirt[int(node) + 1][0] = value["x"]
+                    st.session_state.key_points_tshirt[int(node) + 1][1] = value["y"]
+                    st.write(st.session_state.key_points_tshirt[int(node)])
+                    st.rerun()
+
+                else:
+                    st.sidebar.write("Please select a node first")
+
+
+
+
+
+
 
     ###################KEYPOINT DETECTOR#########################
     # Create two columns to show cloth and model Image
@@ -222,42 +283,86 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
         write_points_and_labels_over_image(st.session_state.key_points_model, model_image)
 
     # If Key Point Detector Is called
-    refresh = st.button("Refresh App")
-    if refresh:
-        remove_file()
+    # Create two columns to show cloth and model Image
     key_point_detector = st.button("Run KeyPoint Detector!")
-    if key_point_detector:
-        key_points = st.session_state.key_points_tshirt
+    st.warning("WARNING:  ONCE CLICKED ALL PREVIOUS KEPYPOINTS DATA WOULD BE ERASED")
 
-        p_pos = get_p_pos(key_points, s_pos_json)
+    col1, col2 = st.columns(2)
 
-        st.session_state.key_points_model = p_pos
-        model_image = Image.open(IMAGE_ADDRESS)
-        write_points_and_labels_over_image(p_pos, model_image)
-
-    model_node = st.text_input('Enter node position to change', key='model_node')
-    if model_node:
-        st.write("You are modifying Node " + str(model_node) + "   Please click on new position")
-        # Create a button
-
-    model_value = streamlit_image_coordinates(
-        model_image,
-        key="kpd",
-    )
-
-    if model_value and (model_value["x"] != st.session_state.point_selected_model["x"] and model_value["y"] !=
-                        st.session_state.point_selected_model["y"]):
-
-        st.session_state.point_selected_model = model_value
-
+    with col1:
+        st.text("")
+        st.text("")
+        st.text("")
+        st.text("")
+        st.text("")
+        st.text("")
+        st.text("")
+        st.text("")
+        st.text("")
+        st.text("")
+        model_node = st.text_input('Enter node position to change', key='model_node')
         if model_node:
+                st.write("You are modifying Node " + str(model_node) + "   Please click on new position")
 
-            st.session_state.key_points_model[int(model_node)][0] = model_value["x"]
-            st.session_state.key_points_model[int(model_node)][1] = model_value["y"]
-            st.rerun()
 
+
+        model_kp_seg = st.selectbox("Keypoints Segments", CUTOUT_RANGE, index=None, key="model_kp_seg")
+
+
+
+
+        model_back = st.button("Undo Last Edited Model Point")
+        if model_back:
+
+            model_node_last = st.session_state.last_selected_model_pt['model_node']
+            x = st.session_state.last_selected_model_pt['x']
+            y = st.session_state.last_selected_model_pt['y']
+
+            st.session_state.key_points_model[int(model_node_last)][0] = x
+            st.session_state.key_points_model[int(model_node_last)][1] = y
+
+
+
+    with col2:
+
+
+        if key_point_detector:
+            key_points = st.session_state.key_points_tshirt
+            st.session_state.key_points_model = get_p_pos(key_points, s_pos_json)
+
+        model_image = Image.open(IMAGE_ADDRESS)
+
+        if model_kp_seg != None:
+            write_points_and_labels_over_image(st.session_state.key_points_model[CUTOUT_MAPPING[model_kp_seg]], model_image, CUTOUT_MAPPING[model_kp_seg])
         else:
-            st.sidebar.write("Please select a node first")
+            write_points_and_labels_over_image(st.session_state.key_points_model, model_image)
+
+
+
+
+        model_value = streamlit_image_coordinates(
+            model_image,
+            key="kpd",
+        )
+
+        if model_value and (model_value["x"] != st.session_state.point_selected_model["x"] and model_value["y"] !=
+                            st.session_state.point_selected_model["y"]):
+
+            st.session_state.point_selected_model = model_value
+
+            if model_node:
+                st.session_state.last_selected_model_pt['model_node'] = model_node
+                st.session_state.last_selected_model_pt['x'] =  st.session_state.key_points_model[int(model_node)][0]
+                st.session_state.last_selected_model_pt['y'] =  st.session_state.key_points_model[int(model_node)][1]
+                st.session_state.key_points_model[int(model_node)][0] = model_value["x"]
+                st.session_state.key_points_model[int(model_node)][1] = model_value["y"]
+                st.rerun()
+
+            else:
+                st.sidebar.write("Please select a node first")
+
+
+
 
     ###########Tshirt Wrapper PIPELINE######################
 
@@ -530,7 +635,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
             st.session_state.skin_mask_selected_points = np.delete(
                 st.session_state.skin_mask_selected_points, skin_mask_selected_point_del, axis=0)
 
-        st.write(st.session_state.add_skin_mask_point_index)
+
 
         add_skin_point_index = st.selectbox("Add point at Index",
                                             [default_value] + list(
