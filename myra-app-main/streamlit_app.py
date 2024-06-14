@@ -702,7 +702,9 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
 
 
+
         skin_image_arr = convert_to_rgb(skin_image_arr, COLORMAP)
+
         if st.session_state.skin_replant_image_arr is None:
             st.session_state.skin_replant_image_arr = skin_image_arr
 
