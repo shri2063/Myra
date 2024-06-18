@@ -366,7 +366,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
     ###########Tshirt Wrapper PIPELINE######################
 
-    generate_wrap = st.button("Generate Wrap ")
+    generate_wrap = st.button("Generate Warps ")
 
     if generate_wrap:
         model_parse_ag_full_image = Image.open(PARSE_AG_ADDRESS)
@@ -603,7 +603,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
     ###########Replant Skin######################
 
-    replant_skin = st.button("Reset Skin Replant")
+    replant_skin = st.button("Replant Masks")
 
     if replant_skin:
         st.session_state.select_colour = False
@@ -613,6 +613,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
         if (os.path.exists('myra-app-main/predict/images/replant_image.png')):
             os.remove('myra-app-main/predict/images/replant_image.png')
         st.session_state.skin_replant_image_arr = None
+        st.session_state.skin_mask_replant_image_arr = None
 
     # Display a file uploader widget
     uploaded_file = st.file_uploader("Upload an image", type=["jpg", "jpeg", "png"])
@@ -727,6 +728,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
             skin_mask_cutout_points_list = [np.array(st.session_state.skin_mask_selected_points).astype(np.int32)]
 
+
             cv2.fillPoly(l_mask, skin_mask_cutout_points_list, 255)
 
             if len(replant_image_arr.shape) > 2:
@@ -739,6 +741,15 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
             else:
                 replant_image_arr[l_mask == 255] = color[0]
+
+            st.write("hi")
+            if os.path.exists("myra-app-main/predict/images/out_mask.png"):
+                if st.session_state.skin_mask_replant_image_arr is None:
+                    mask_replant_image = "myra-app-main/predict/images/out_mask.png"
+                    mask_replant_image = Image.open(mask_replant_image)
+                    st.session_state.skin_mask_replant_image_arr = np.array(mask_replant_image).copy()
+                st.session_state.skin_mask_replant_image_arr[l_mask == 255] = 255
+
 
             if np.all(color == 0):
                 replant_image_arr[l_mask == 255] = 0
