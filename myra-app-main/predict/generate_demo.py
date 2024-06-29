@@ -571,7 +571,7 @@ def test(args, args_sci):
     print(image.shape,cloth.shape,v_pos.shape,p_pos.shape,ag_mask.shape,skin_mask.shape,pg_output.shape)
     out_image, out_mask, image_ag = generate_repaint(args, image, cloth, v_pos, p_pos[0], ag_mask, skin_mask, pg_output[0])
     #x = Image.fromarray(out_image)
-    #x.save('out_image.jpg')
+    #x.save('out_image.png')
     #x = Image.fromarray(out_mask)
     #x.save('out_mask.jpg')
     #print("Out image", out_image)

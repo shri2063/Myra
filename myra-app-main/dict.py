@@ -38,8 +38,8 @@ CUTOUT_MAPPING = {
     'right_low': right_low
 }
 CUTOUT_RANGE = ['backbone', 'left_up', 'left_low', 'right_up', 'right_low']
-BACK_IMAGES = ['model_image', 'out_image', 'uploaded_image', 'parse']
-FRONT_IMAGES = ['model_image', 'out_image', 'uploaded_image', 'parse']
+BACK_IMAGES = ['model_image', 'out_image', 'uploaded_image', 'parse', "skin"]
+FRONT_IMAGES = ['model_image', 'out_image', 'uploaded_image', 'parse', "skin"]
 
 
 

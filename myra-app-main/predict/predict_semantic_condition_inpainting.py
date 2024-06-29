@@ -2424,7 +2424,7 @@ def model_fn(x, t, y=None, gt=None, **kwargs):
 totensor_transform = transforms.ToTensor()
 norm_transform = transforms.Normalize((0.5, 0.5, 0.5), (0.5, 0.5, 0.5))
 
-out_image = np.array(Image.open('predict/myra_v1/out_image.jpg'))
+out_image = np.array(Image.open('predict/myra_v1/out_image.png'))
 out_mask = np.array(Image.open('predict/myra_v1/out_mask.jpg'))
 pg_output_image = Image.open('predict/myra_v1/parse_seg_image.png')
 

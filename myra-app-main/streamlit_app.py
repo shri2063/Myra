@@ -89,7 +89,8 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
     IMAGES_MAPPING = {
         'model_image': IMAGE_ADDRESS,
         'out_image': 'myra-app-main/predict/images/out_image.png',
-        'parse':PARSE_ADDRESS
+        'parse':PARSE_ADDRESS,
+        'skin': SKIN_MASK_ADDRESS
     }
 
     ######CREATE CATALOG############
@@ -284,8 +285,9 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
     # If Key Point Detector Is called
     # Create two columns to show cloth and model Image
-    key_point_detector = st.button("Run KeyPoint Detector!")
     st.warning("WARNING:  ONCE CLICKED ALL PREVIOUS KEPYPOINTS DATA WOULD BE ERASED")
+    key_point_detector = st.button("Run KeyPoint Detector!")
+
 
     col1, col2 = st.columns(2)
 
@@ -833,6 +835,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
     col1, col2 = st.columns(2)
     with col1:
 
+
         if skin_image is not None:
 
             # Define the weight for each image
@@ -840,7 +843,9 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
             beta = (100 - skin_blend_intensity) / 100  # Weight for the cutout image
 
 
-
+            ## To Add Transparency
+            #skin_mask = np.asarray(Image.open(SKIN_MASK_ADDRESS))
+            #back_image_arr[skin_mask[:,:,0] == 0] = skin_image_arr[skin_mask[:,:,0] == 0]
 
             skin_blended_image = cv2.addWeighted(back_image_arr[:, :, :3], alpha,
                                                  skin_image_arr[:, :, :3].astype(np.uint8), beta, 0)

@@ -44,12 +44,12 @@ MODEL_SEG_IMAGE_ADDRESS = "myra-app-main/upload_images/parse.png"
 AG_MASK_ADDRESS = "myra-app-main/upload_images/ag_mask.png"
 SKIN_MASK_ADDRESS = "myra-app-main/upload_images/skin_mask.png"
 OUT_MASK_ADDRESS = "myra-app-main/predict/images/out_mask.jpg"
-OUT_IMAGE_ADDRESS = "myra-app-main/predict/images/out_image.jpg"
+OUT_IMAGE_ADDRESS = "myra-app-main/predict/images/out_image.png"
 PG_OUTPUT_IMAGE_ADDRESS = "myra-app-main/predict/images/pg_output.png"
 MODEL_PARSE_AG_FULL = "myra-app-main/upload_images/parse_ag_full.png"
 
-if os.path.exists('myra-app-main/out_image.jpg'):
-    os.remove('myra-app-main/out_image.jpg')
+if os.path.exists('myra-app-main/out_image.png'):
+    os.remove('myra-app-main/out_image.png')
 if os.path.exists('myra-app-main/out_mask.jpg'):
     os.remove('myra-app-main/out_mask.jpg')
 if os.path.exists('myra-app-main/pg_output.png'):
@@ -397,7 +397,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
         )
         st.image(Image.fromarray(out_image))
-        Image.fromarray(out_image).save('myra-app-main/predict/images/out_image.jpg')
+        Image.fromarray(out_image).save('myra-app-main/predict/images/out_image.png')
         Image.fromarray(out_mask).save('myra-app-main/predict/images/out_mask.jpg')
         # st.image(Image.fromarray(out_mask))
 
