@@ -7,3 +7,4 @@ roboflow
 cloudinary
 torch
 scipy
+torchvision
