@@ -15,7 +15,7 @@ replicate_text = "Stability AI SDXL Model on Replicate"
 replicate_link = "https://replicate.com/stability-ai/sdxl"
 replicate_logo = "https://storage.googleapis.com/llama2_release/Screen%20Shot%202023-07-21%20at%2012.34.05%20PM.png"
 
-# Placeholders for myra_v1 and gallery
+# Placeholders for home and gallery
 generated_images_placeholder = st.empty()
 gallery_placeholder = st.empty()
 

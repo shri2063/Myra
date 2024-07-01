@@ -33,7 +33,7 @@ replicate_text = "Stability AI SDXL Model on Replicate"
 replicate_link = "https://replicate.com/stability-ai/sdxl"
 replicate_logo = "https://storage.googleapis.com/llama2_release/Screen%20Shot%202023-07-21%20at%2012.34.05%20PM.png"
 
-# Placeholders for myra_v1 and gallery
+# Placeholders for home and gallery
 generated_images_placeholder = st.empty()
 gallery_placeholder = st.empty()
 
@@ -73,7 +73,7 @@ def configure_sidebar() -> None:
                 width = st.number_input("Width of output image", value=1024)
                 height = st.number_input("Height of output image", value=1024)
                 num_outputs = st.slider(
-                    "Number of myra_v1 to output", value=1, min_value=1, max_value=4)
+                    "Number of home to output", value=1, min_value=1, max_value=4)
                 scheduler = st.selectbox('Scheduler', ('DDIM', 'DPMSolverMultistep', 'HeunDiscrete',
                                                        'KarrasDPM', 'K_EULER_ANCESTRAL', 'K_EULER', 'PNDM'))
                 num_inference_steps = st.slider(
@@ -229,7 +229,7 @@ def update_point_over_image(edited_image: Image, node: str, value: dict, kp_arr:
 
 
 def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
-    """Main page layout and logic for generating myra_v1."""
+    """Main page layout and logic for generating home."""
 
     #############PLOT KEYPOINTS OVER TSHIRT#############
     # SAVE UPLOADED TSHIRT IMAGE AND MODEL IMAGE
@@ -254,7 +254,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
     # Create two columns to show cloth and model Image
     col1, col2 = st.columns(2)
 
-    # Display the myra_v1 in the column along with keypoints
+    # Display the home in the column along with keypoints
 
     with col1:
         # Create an input text box to select a keypoint whose position needs to be changed
@@ -312,7 +312,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
     # Create two columns to show cloth and model Image
     col1, col2 = st.columns(2)
 
-    # Display the myra_v1 in the columns
+    # Display the home in the columns
 
     with col1:
 
@@ -420,7 +420,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
 
     col1, col2, col3 = st.columns(3)
-    # Display the myra_v1 in the columns
+    # Display the home in the columns
     with col1:
         st.image(OUT_IMAGE_ADDRESS, caption='Output Image', use_column_width=True)
         out_image = cloudinary_upload.uploadImage(OUT_IMAGE_ADDRESS, 'out_image_8')
@@ -520,7 +520,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
             unsafe_allow_html=True)
 
         st.write(
-            "<span style='font-family: Roboto,sans-serif'>We have listed below few examples of results obtained from Myra AI .The mannequin myra_v1 below were retrieved from the internet from different sites. "
+            "<span style='font-family: Roboto,sans-serif'>We have listed below few examples of results obtained from Myra AI .The mannequin home below were retrieved from the internet from different sites. "
             "pinterest, shutterstock, istockphoto. "
             " Myra AI could "
             "fit AI image within this dress, maintaining the dress outline, tone, and appearance.</span>",
@@ -530,10 +530,10 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
         M1 = image_select(
             label="WHITE CREAM COLOUR FULL TSHIRT ON BLUE JEANS (https://www.pinterest.com/pin/30891947430775019)",
             images=[
-                "myra-app-main/myra_v1/M1/input.png", "myra-app-main/myra_v1/M1/2-00002_00.png",
-                "myra-app-main/myra_v1/M1/2-00002_00.png", "myra-app-main/myra_v1/M1/3-5.png",
-                "myra-app-main/myra_v1/M1/4-3.png",
-                "myra-app-main/myra_v1/M1/5-3.png"
+                "myra-app-main/home/MA/input.png", "myra-app-main/home/MA/2-00002_00.png",
+                "myra-app-main/home/MA/2-00002_00.png", "myra-app-main/home/MA/3-5.png",
+                "myra-app-main/home/MA/4-00413_F2.png",
+                "myra-app-main/home/MA/5-00413_F2.png"
 
             ],
             captions=["Input Image to Myra AI fetched  from pinterest website",
@@ -548,15 +548,15 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
         st.write(
             "<span style='font-family: Roboto,sans-serif'>PLEASE CLICK ON ANY ABOVE IMAGE FOR A CLOSER LOOK.</span>",
             unsafe_allow_html=True)
-        if M1 != "myra_v1/M1/input.png":
-            # Load the myra_v1
-            image1 = Image.open("myra-app-main/myra_v1/M1/input.png")
+        if M1 != "home/MA/input.png":
+            # Load the home
+            image1 = Image.open("myra-app-main/home/MA/input.png")
             image2 = Image.open(M1)
 
-            # Create two columns for displaying myra_v1 side by side
+            # Create two columns for displaying home side by side
             col1, col2 = st.columns(2)
 
-            # Display the myra_v1 in the columns
+            # Display the home in the columns
             with col1:
                 st.image(image1, caption='Input Image', use_column_width=True)
 
@@ -569,10 +569,10 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
         M6 = image_select(
             label="RED COLLAR DOTTED TSHIRT ON BLUE JEANS (https://www.shutterstock.com/image-photo/fulllength-male-mannequin-dressed-tshirt-jeans-1067987750)",
             images=[
-                "myra-app-main/myra_v1/M6/input.png", "myra-app-main/myra_v1/M6/1-4.png",
-                "myra-app-main/myra_v1/M6/00002_00.png", "myra-app-main/myra_v1/M6/3-5.png",
-                "myra-app-main/myra_v1/M6/4-3.png",
-                "myra-app-main/myra_v1/M6/5-00002_00.png"
+                "myra-app-main/home/MF/input.png", "myra-app-main/home/MF/1-07587_F2.png",
+                "myra-app-main/home/MF/00002_00.png", "myra-app-main/home/MF/3-5.png",
+                "myra-app-main/home/MF/4-00413_F2.png",
+                "myra-app-main/home/MF/5-00002_00.png"
 
             ],
             captions=["Input image of Mannequin with tshirt obtained from shutterstock website",
@@ -587,15 +587,15 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
         st.write(
             "<span style='font-family: Roboto,sans-serif'>PLEASE CLICK ON ANY ABOVE IMAGE FOR A CLOSER LOOK.</span>",
             unsafe_allow_html=True)
-        if M6 != "myra_v1/M6/input.png":
-            # Load the myra_v1
-            image1 = Image.open("myra-app-main/myra_v1/M6/input.png")
+        if M6 != "home/MF/input.png":
+            # Load the home
+            image1 = Image.open("myra-app-main/home/MF/input.png")
             image2 = Image.open(M6)
 
-            # Create two columns for displaying myra_v1 side by side
+            # Create two columns for displaying home side by side
             col1, col2 = st.columns(2)
 
-            # Display the myra_v1 in the columns
+            # Display the home in the columns
             with col1:
                 st.image(image1, caption='Input Image', use_column_width=True)
 
@@ -608,9 +608,9 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
         M7 = image_select(
             label="White half sleeves tshirt on blue jeans (https://www.istockphoto.com/photo/full-length-male-mannequin-gm1289535860-385180516)",
             images=[
-                "myra-app-main/myra_v1/M7/input.png", "myra-app-main/myra_v1/M7/1-00002_00.png",
-                "myra-app-main/myra_v1/M7/2-00002_00.png", "myra-app-main/myra_v1/M7/3-00002_00.png",
-                "myra-app-main/myra_v1/M7/4-3.png",
+                "myra-app-main/home/MD/input.png", "myra-app-main/home/MD/1-00002_00.png",
+                "myra-app-main/home/MD/2-00002_00.png", "myra-app-main/home/MD/3-00002_00.png",
+                "myra-app-main/home/MD/4-00413_F2.png",
 
             ],
             captions=["Input image of Mannequin with tshirt obtained from istockphoto  website",
@@ -624,15 +624,15 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
         st.write(
             "<span style='font-family: Roboto,sans-serif'>PLEASE CLICK ON ANY ABOVE IMAGE FOR A CLOSER LOOK.</span>",
             unsafe_allow_html=True)
-        if M7 != "myra_v1/M7/input.png":
-            # Load the myra_v1
-            image1 = Image.open("myra-app-main/myra_v1/M7/input.png")
+        if M7 != "home/MD/input.png":
+            # Load the home
+            image1 = Image.open("myra-app-main/home/MD/input.png")
             image2 = Image.open(M7)
 
-            # Create two columns for displaying myra_v1 side by side
+            # Create two columns for displaying home side by side
             col1, col2 = st.columns(2)
 
-            # Display the myra_v1 in the columns
+            # Display the home in the columns
             with col1:
                 st.image(image1, caption='Input Image', use_column_width=True)
 
@@ -650,7 +650,7 @@ def main():
 
     This function initializes the sidebar configuration and the main page layout.
     It retrieves the user inputs from the sidebar, and passes them to the main page function.
-    The main page function then generates myra_v1 based on these inputs.
+    The main page function then generates home based on these inputs.
     """
     # submitted, width, height, num_outputs, scheduler, num_inference_steps, guidance_scale, prompt_strength, refine, high_noise_frac, prompt, negative_prompt = configure_sidebar()
     try:

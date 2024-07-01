@@ -2,6 +2,7 @@ import os
 
 import numpy as np
 import streamlit as st
+from streamlit_image_select import image_select
 
 ## Set Page framework
 st.set_page_config(page_title="Myra",
@@ -20,6 +21,8 @@ from dict import *
 from tps_services import *
 
 ### Session State variables
+if 'page' not in st.session_state:
+    st.session_state.page = 'home'
 
 if 'key_points_tshirt' not in st.session_state:
     st.session_state.key_points_tshirt = None
@@ -73,9 +76,175 @@ if 'selected_skin_mask' not in st.session_state:
 if 'skin_out_image_toggle' not in st.session_state:
     st.session_state.skin_out_image_toggle = False
 
+def home_page():
+    st.write(
+        "<span style='font-family: Roboto, sans-serif;'>At Myra, our vision is to inject a sense of magic and creativity into e-commerce fashion "
+        "photoshoots by leveraging AI-generated image. </span>",
+        unsafe_allow_html=True)
+    st.write(" ")
+
+    st.write(
+        "<span style='font-family: Roboto, sans-serif;'> Here's the concept: We begin with an image of a mannequin showcasing the fashion product under ideal "
+        "lighting conditions. This image, along with your prompt detailing the desired attributes of the final model, is fed into our Myra AI system. "
+        "From there, Myra AI swiftly crafts the perfect image of real looking model tailored to your specifications in no time.</span>",
+        unsafe_allow_html=True)
+
+    st.write(
+        "<span style='font-family: Roboto,sans-serif'>We have listed below few examples of results obtained from Myra AI .The mannequin home below were retrieved from the internet from different sites. "
+        "pinterest, shutterstock, istockphoto. "
+        " Myra AI could "
+        "fit AI image within this dress, maintaining the dress outline, tone, and appearance.</span>",
+        unsafe_allow_html=True)
+
+    st.write("")
+    st.write("")
+    st.write("")
+
+
+    #####  MODEL A #######
+
+    image1 = Image.open("myra-app-main/home/MA/05700_00.jpg")
+    image2 = Image.open("myra-app-main/home/MA/07262_00.jpg")
+    image3 = Image.open("myra-app-main/home/MA/00375_F2.png")
+    image4 = Image.open("myra-app-main/home/MA/00413_F2.png")
+    image5 = Image.open("myra-app-main/home/MA/00540_F2.png")
+    image6 = Image.open("myra-app-main/home/MA/07587_F2.png")
+
+    # Create two columns for displaying home side by side
+
+    col1, col2 = st.columns(2)
+
+    # Display the home in the columns
+    with col1:
+        st.image(image1, caption='Input Image (Tshirt)', use_column_width=True)
+
+    with col2:
+        st.image(image2, caption='Input Image (Model)', use_column_width=True)
+    st.write("")
+    st.write("")
+    st.write("")
+
+    st.info("Now Let's brew  some Myra magic !!!")
+
+    # Create two columns for displaying home side by side
+    col3, col4 = st.columns(2)
+
+    # Display the home in the columns
+    with col3:
+        st.image(image3, caption='Output Image', use_column_width=True)
+
+    with col4:
+        st.image(image4, caption='Output Image', use_column_width=True)
+
+
+    # Create two columns for displaying home side by side
+    col5, col6 = st.columns(2)
+
+    # Display the home in the columns
+    with col5:
+        st.image(image5, caption='Output Image', use_column_width=True)
+
+    with col6:
+        st.image(image6, caption='Output Image', use_column_width=True)
+
+    st.write("")
+    st.write("")
+    st.write("")
+
+    #####  MODEL D #######
+    image1 = Image.open("myra-app-main/home/MD/06758_00.jpg")
+    image2 = Image.open("myra-app-main/home/MD/07046_00.jpg")
+    image3 = Image.open("myra-app-main/home/MD/10930_03_F2.png")
+    image4 = Image.open("myra-app-main/home/MD/04963_03_F1.png")
+    image5 = Image.open("myra-app-main/home/MD/02364_00_F1.png")
+    image6 = Image.open("myra-app-main/home/MD/09566_01_F2.png")
+
+    # Create two columns for displaying home side by side
+
+    col1, col2 = st.columns(2)
+
+    # Display the home in the columns
+    with col1:
+        st.image(image1, caption='Input Image (Tshirt)', use_column_width=True)
+
+    with col2:
+        st.image(image2, caption='Input Image (Model)', use_column_width=True)
+    st.write("")
+    st.write("")
+    st.write("")
+
+    st.info("With Some Myra Magic following Model creatives can be created !!!")
+
+    # Create two columns for displaying home side by side
+    col3, col4 = st.columns(2)
+
+    # Display the home in the columns
+    with col3:
+        st.image(image3, caption='Output Image', use_column_width=True)
+
+    with col4:
+        st.image(image4, caption='Output Image', use_column_width=True)
+
+    # Create two columns for displaying home side by side
+    col5, col6 = st.columns(2)
+
+    # Display the home in the columns
+    with col5:
+        st.image(image5, caption='Output Image', use_column_width=True)
+
+    with col6:
+        st.image(image6, caption='Output Image', use_column_width=True)
+
+    st.write("")
+    st.write("")
+    st.write("")
+
+    #####  MODEL F #######
+    image1 = Image.open("myra-app-main/home/MF/07025_00.jpg")
+    image2 = Image.open("myra-app-main/home/MF/01994_00.jpg")
+    image3 = Image.open("myra-app-main/home/MF/03159_03_F2.png")
+    image4 = Image.open("myra-app-main/home/MF/01815_01_F5.png")
+    image5 = Image.open("myra-app-main/home/MF/06442_01_F3.png")
+    image6 = Image.open("myra-app-main/home/MF/09264_00_f2.png")
+
+    # Create two columns for displaying home side by side
+
+    col1, col2 = st.columns(2)
+
+    # Display the home in the columns
+    with col1:
+        st.image(image1, caption='Input Image (Tshirt)', use_column_width=True)
+
+    with col2:
+        st.image(image2, caption='Input Image (Model)', use_column_width=True)
+    st.write("")
+    st.write("")
+    st.write("")
+
+    st.info("Here you go with the Myra AI!!")
+
+    # Create two columns for displaying home side by side
+    col3, col4 = st.columns(2)
+
+    # Display the home in the columns
+    with col3:
+        st.image(image3, caption='Output Image', use_column_width=True)
+
+    with col4:
+        st.image(image4, caption='Output Image', use_column_width=True)
+
+    # Create two columns for displaying home side by side
+    col5, col6 = st.columns(2)
+
+    # Display the home in the columns
+    with col5:
+        st.image(image5, caption='Output Image', use_column_width=True)
+
+    with col6:
+        st.image(image6, caption='Output Image', use_column_width=True)
 
 def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
-    """Main page layout and logic for generating myra_v1."""
+    """Main page layout and logic for generating home."""
 
     s_pos_json = f'myra-app-main/data/openpose_json/{st.session_state.selected_model}_keypoints.json'
     c_pos_json = f'myra-app-main/data/cloth-landmark-json/{st.session_state.selected_tshirt}.json'
@@ -172,7 +341,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
     # Create two columns to show cloth and model Image
     col1, col2 = st.columns(2)
 
-    # Display the myra_v1 in the column along with keypoints
+    # Display the home in the column along with keypoints
 
     with col1:
         st.write(f"SELECTED MODEL: {st.session_state.selected_model}")
@@ -984,7 +1153,7 @@ def main():
 
     This function initializes the sidebar configuration and the main page layout.
     It retrieves the user inputs from the sidebar, and passes them to the main page function.
-    The main page function then generates myra_v1 based on these inputs.
+    The main page function then generates home based on these inputs.
     """
     # submitted, width, height, num_outputs, scheduler, num_inference_steps, guidance_scale, prompt_strength, refine, high_noise_frac, prompt, negative_prompt = configure_sidebar()
     try:
@@ -993,5 +1162,86 @@ def main():
         1 == 1
 
 
+def configure_sidebar() -> None:
+    """
+    Setup and display the sidebar elements.
+
+    This function configures the sidebar of the Streamlit application,
+    including the form for user inputs and the resources section.
+    """
+    with st.sidebar:
+        st.info("** Check out our AI model photoshoots with different designs ↑**", icon="👋🏾")
+        home = st.button("Home")
+        if home:
+            st.session_state.page = "home"
+        st.info(":rainbow[**Try out yourself with any combination of model and tshirt**]")
+        main = st.button("Try Yourself")
+        if main:
+            st.session_state.page = "main"
+        with st.form("my_form"):
+
+
+            with st.expander(":rainbow[**Try out yourself with any combination of model and tshirt**]"):
+
+                # Advanced Settings (for the curious minds!)
+                width = st.number_input("Width of output image", value=1024)
+                height = st.number_input("Height of output image", value=1024)
+                num_outputs = st.slider(
+                    "Number of home to output", value=1, min_value=1, max_value=4)
+                scheduler = st.selectbox('Scheduler', ('DDIM', 'DPMSolverMultistep', 'HeunDiscrete',
+                                                       'KarrasDPM', 'K_EULER_ANCESTRAL', 'K_EULER', 'PNDM'))
+                num_inference_steps = st.slider(
+                    "Number of denoising steps", value=50, min_value=1, max_value=500)
+                guidance_scale = st.slider(
+                    "Scale for classifier-free guidance", value=7.5, min_value=1.0, max_value=50.0, step=0.1)
+                prompt_strength = st.slider(
+                    "Prompt strength when using img2img/inpaint(1.0 corresponds to full destruction of infomation in image)",
+                    value=0.8, max_value=1.0, step=0.1)
+                refine = st.selectbox(
+                    "Select refine style to use (left out the other 2)", ("expert_ensemble_refiner", "None"))
+                high_noise_frac = st.slider(
+                    "Fraction of noise to use for `expert_ensemble_refiner`", value=0.8, max_value=1.0, step=0.1)
+
+            prompt = st.text_area(
+                ":orange[**Enter prompt: start typing, Shakespeare ✍🏾**]",
+                value="An astronaut riding a rainbow unicorn, cinematic, dramatic")
+            negative_prompt = st.text_area(":orange[**Party poopers you don't want in image? 🙅🏽‍♂️**]",
+                                           value="the absolute worst quality, distorted features",
+                                           help="This is a negative prompt, basically type what you don't want to see in the generated image")
+
+
+            # The Big Red "Submit" Button!
+            submitted = st.form_submit_button(
+                "Submit", type="primary", use_container_width=True)
+            show_popup = st.sidebar.button("Show Pop-up")
+
+        # Credits and resources
+        st.divider()
+        st.markdown(
+            ":orange[**Resources:**]  \n"
+            f"<img src='{replicate_logo}' style='height: 1em'> [{replicate_text}]({replicate_link})",
+            unsafe_allow_html=True
+        )
+
+        st.markdown(
+            """
+            ---
+            Follow me on:
+
+            𝕏 → [@tonykipkemboi](https://twitter.com/tonykipkemboi)
+
+            LinkedIn → [Tony Kipkemboi](https://www.linkedin.com/in/tonykipkemboi)
+
+            """
+        )
+
+        # return submitted, width, height, num_outputs, scheduler, num_inference_steps, guidance_scale, prompt_strength, refine, high_noise_frac, prompt, negative_prompt
+        return;
+
+
 if __name__ == "__main__":
-    main()
+    configure_sidebar()
+    if st.session_state.page == "main":
+        main()
+    if st.session_state.page == "home":
+        home_page()

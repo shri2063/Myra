@@ -51,7 +51,7 @@ def predict_seg_img(model_image_address: str) -> Image:
     ag_mask.save("myra-app-main/predict/images/ag_mask.png")
     skin_mask.save("myra-app-main/predict/images/skin_mask.png")
     return model_seg,ag_mask,skin_mask
-    # model_seg.save("myra-app-main/predict/myra_v1/parse.png")
+    # model_seg.save("myra-app-main/predict/home/parse.png")
 
 
 predict_seg_img("myra-app-main/upload_images/image.jpg")

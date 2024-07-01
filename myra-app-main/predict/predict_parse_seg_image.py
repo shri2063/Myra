@@ -14,7 +14,7 @@ import streamlit as st
 
 
 PG_CHECK_POINT_DIR = "myra-app-main/checkpoints_pretrained/pg/step_9999.pt"
-PARSE_SEG_IMAGE = "myra-app-main/predict/myra_v1/parse.png"
+PARSE_SEG_IMAGE = "myra-app-main/predict/home/parse.png"
 def draw_skeleton(sk_pos):
     sk_pos[:, 0] = sk_pos[:, 0] * 768
     sk_pos[:, 1] = sk_pos[:, 1] * 1024
