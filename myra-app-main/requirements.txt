@@ -6,3 +6,4 @@ pyclipper
 roboflow
 cloudinary
 torch
+scipy
