@@ -8,3 +8,4 @@ cloudinary
 torch
 scipy
 torchvision
+streamlit_image_coordinates
