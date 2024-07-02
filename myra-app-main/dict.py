@@ -7,8 +7,8 @@ from PIL import Image
 
 
 # API Tokens and endpoints from `.streamlit/secrets.toml` file
-REPLICATE_API_TOKEN = st.secrets["REPLICATE_API_TOKEN"]
-REPLICATE_MODEL_ENDPOINTSTABILITY = st.secrets["REPLICATE_MODEL_ENDPOINTSTABILITY"]
+REPLICATE_API_TOKEN = "blaa"
+REPLICATE_MODEL_ENDPOINTSTABILITY = "blaa"
 
 # Resources text, link, and logo
 replicate_text = "Stability AI SDXL Model on Replicate"

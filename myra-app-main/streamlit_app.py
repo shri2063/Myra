@@ -25,42 +25,11 @@ import smtplib
 from email.mime.text import MIMEText
 
 
-st.title('Send Streamlit SMTP Email 💌 🚀')
-
-st.markdown("""
-**Enter your email, subject, and email body then hit send to receive an email from `summittradingcard@gmail.com`!**
-""")
-
-# Taking inputs
-email_sender = st.text_input('From', 'shrikant@flexli.in', disabled=True)
-email_receiver = st.text_input('To')
-subject = st.text_input('Subject')
-body = st.text_area('Body')
-
-# Hide the password input
-password = st.text_input('Password', type="password", disabled=True)
-
-if st.button("Send Email"):
-    try:
-        msg = MIMEText(body)
-        msg['From'] = email_sender
-        msg['To'] = email_receiver
-        msg['Subject'] = subject
-
-        server = smtplib.SMTP('smtp.gmail.com', 587)
-        server.starttls()
-        server.login('bholeshrikant@gmail.com', 'kybp iedf qlba zdmn')
-        server.sendmail(email_sender, email_receiver, msg.as_string())
-        server.quit()
-
-        st.success('Email sent successfully! 🚀')
-    except Exception as e:
-        st.error(f"Failed to send email: {e}")
-
 ### Session State variables
 if 'page' not in st.session_state:
     st.session_state.page = 'home'
-
+if 'token' not in st.session_state:
+    st.session_state.token = 'blaa'
 if 'key_points_tshirt' not in st.session_state:
     st.session_state.key_points_tshirt = None
 if 'key_points_model' not in st.session_state:
@@ -1207,68 +1176,58 @@ def configure_sidebar() -> None:
     including the form for user inputs and the resources section.
     """
     with st.sidebar:
-        st.info("** Check out our AI model photoshoots with different designs ↑**", icon="👋🏾")
-        home = st.button("Home")
+        home = st.button(":rainbow[**Our Creative**]")
         if home:
             st.session_state.page = "home"
-        st.info(":rainbow[**Try out yourself with any combination of model and tshirt**]")
-        main = st.button("Try Yourself")
-        if main:
-            st.session_state.page = "main"
-        with st.form("my_form"):
+        with st.expander(":rainbow[**Try Yourself**]"):
 
 
-            with st.expander(":rainbow[**Try out yourself with any combination of model and tshirt**]"):
-
-                # Advanced Settings (for the curious minds!)
-                width = st.number_input("Width of output image", value=1024)
-                height = st.number_input("Height of output image", value=1024)
-                num_outputs = st.slider(
-                    "Number of home to output", value=1, min_value=1, max_value=4)
-                scheduler = st.selectbox('Scheduler', ('DDIM', 'DPMSolverMultistep', 'HeunDiscrete',
-                                                       'KarrasDPM', 'K_EULER_ANCESTRAL', 'K_EULER', 'PNDM'))
-                num_inference_steps = st.slider(
-                    "Number of denoising steps", value=50, min_value=1, max_value=500)
-                guidance_scale = st.slider(
-                    "Scale for classifier-free guidance", value=7.5, min_value=1.0, max_value=50.0, step=0.1)
-                prompt_strength = st.slider(
-                    "Prompt strength when using img2img/inpaint(1.0 corresponds to full destruction of infomation in image)",
-                    value=0.8, max_value=1.0, step=0.1)
-                refine = st.selectbox(
-                    "Select refine style to use (left out the other 2)", ("expert_ensemble_refiner", "None"))
-                high_noise_frac = st.slider(
-                    "Fraction of noise to use for `expert_ensemble_refiner`", value=0.8, max_value=1.0, step=0.1)
-
-            prompt = st.text_area(
-                ":orange[**Enter prompt: start typing, Shakespeare ✍🏾**]",
-                value="An astronaut riding a rainbow unicorn, cinematic, dramatic")
-            negative_prompt = st.text_area(":orange[**Party poopers you don't want in image? 🙅🏽‍♂️**]",
-                                           value="the absolute worst quality, distorted features",
-                                           help="This is a negative prompt, basically type what you don't want to see in the generated image")
+            st.session_state.token = st.text_input(':rainbow[**Please enter token**] ')
+            enter = st.button("enter")
+            if enter and st.session_state.token == "myra2024":
+                st.write("correct")
+                st.session_state.page = "main"
 
 
-            # The Big Red "Submit" Button!
-            submitted = st.form_submit_button(
-                "Submit", type="primary", use_container_width=True)
-            show_popup = st.sidebar.button("Show Pop-up")
 
-        # Credits and resources
-        st.divider()
-        st.markdown(
-            ":orange[**Resources:**]  \n"
-            f"<img src='{replicate_logo}' style='height: 1em'> [{replicate_text}]({replicate_link})",
-            unsafe_allow_html=True
-        )
+        with st.expander(":rainbow[**Setup Demo or Request Token 👋🏾 💌 🚀**]"):
+            email = st.text_input('email', key='demo_email')
+            contact = st.text_input('contact (Optional)', key='demo_contact')
+            body = st.text_area('Body', key='demo_body')
 
-        st.markdown(
-            """
-            ---
-            Follow me on:
+            if st.button("Send Email", key = 'demo_send'):
+                try:
+                    if email == '':
+                        st.sidebar.write("Please enter email id")
+                    else:
+                        msg = MIMEText(body)
+                        msg['From'] = 'bholeshrikant@gmail.com'
+                        msg['To'] = 'bholeshrikant@gmail.com'
+                        msg['Subject'] = email + "---" + contact
 
-            𝕏 → [@tonykipkemboi](https://twitter.com/tonykipkemboi)
+                        server = smtplib.SMTP('smtp.gmail.com', 587)
+                        server.starttls()
+                        server.login('bholeshrikant@gmail.com', 'kybp iedf qlba zdmn')
+                        server.sendmail('bholeshrikant@gmail.com', 'bholeshrikant@gmail.com', msg.as_string())
+                        server.quit()
 
-            LinkedIn → [Tony Kipkemboi](https://www.linkedin.com/in/tonykipkemboi)
+                        st.success('Email sent successfully! 🚀')
+                except Exception as e:
+                    st.error(f"Failed to send email: {e}")
 
+        with st.expander(":rainbow[**Reach out on Watsapp**]"):
+            st.write(":orange[ Just drop us message on 8800283739 and we will reach out you soon")
+
+        with st.expander(":rainbow[A bit about us👋🏾]"):
+            st.write(":orange[ Nothing fam !! Just some bunch of tech enthusiasts working persistently to craft  some Myra Magic into fashion Industry  ]")
+
+            st.markdown(
+            """   
+            
+            Website -> [Flexli](https://flexli.in/)
+            
+            LinkedIn → [Shrikant](https://www.linkedin.com/in/tonykipkemboi)
+            
             """
         )
 
