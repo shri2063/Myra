@@ -160,10 +160,10 @@ def initialize_out_image_and_mask(out_image_arr: np.ndarray, model_image_arr : n
 def write_points_and_labels_over_image(arr: np.ndarray, image: Image, labels: {} = None) -> Image:
     st.write("hi6.0")
     point_size = 5
-    label_text = 'Point'
     draw = ImageDraw.Draw(image)
-    font_size = 16
+    st.write("hi6.1")
     font = ImageFont.truetype("arial.ttf", 15)
+    st.write("hi6.2")
     text_width, text_height = 5, 5
     point_color = 'red'
 
