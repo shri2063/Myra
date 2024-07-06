@@ -417,6 +417,8 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
                                                    tshirt_image, CUTOUT_MAPPING[tshirt_kp_seg])
             else:
                 st.write("hi4")
+                st.write(st.session_state.key_points_tshirt[1:])
+                st.image(tshirt_image)
                 write_points_and_labels_over_image( st.session_state.key_points_tshirt[1:], tshirt_image, None)
 
             st.write("hi5")

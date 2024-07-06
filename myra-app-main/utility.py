@@ -166,10 +166,10 @@ def write_points_and_labels_over_image(arr: np.ndarray, image: Image, labels: {}
     text_width, text_height = 5, 5
     point_color = 'red'
 
-
+    st.write("hi6")
     if labels is not None:
 
-
+        st.write("hi7")
         for id, point in enumerate(arr):
             draw.ellipse(
                 (point[0] - point_size, point[1] - point_size, point[0] + point_size, point[1] + point_size),
@@ -179,7 +179,7 @@ def write_points_and_labels_over_image(arr: np.ndarray, image: Image, labels: {}
 
             draw.text((text_x, text_y), str(labels[id]), fill='red', font=font)
         return image
-
+    st.write("hi8")
     for id, point in enumerate(arr):
         draw.ellipse(
             (point[0] - point_size, point[1] - point_size, point[0] + point_size, point[1] + point_size),
