@@ -397,11 +397,12 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
     with col2:
 
-
+        st.write("hi1")
         if os.path.exists(CLOTH_ADDRESS):
 
             if st.session_state.key_points_tshirt is None:
                 with open(c_pos_json, 'r') as file:
+                    st.write("hi2")
                     json_list = json.load(file)
                     kp_arr = np.array(json_list["long"]) * 250
                     st.session_state.key_points_tshirt = kp_arr
@@ -411,13 +412,14 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
             if tshirt_kp_seg != None:
 
-
+                st.write("hi3")
                 write_points_and_labels_over_image( st.session_state.key_points_tshirt[1:][CUTOUT_MAPPING[tshirt_kp_seg]],
                                                    tshirt_image, CUTOUT_MAPPING[tshirt_kp_seg])
             else:
+                st.write("hi4")
                 write_points_and_labels_over_image( st.session_state.key_points_tshirt[1:], tshirt_image, None)
 
-            st.write("hi")
+            st.write("hi5")
             ## Streamlit Image coordinate is a spl library in streamlit that captures point coordinates
             ## of a pixel clicked by mouse over the image
             value = streamlit_image_coordinates(
