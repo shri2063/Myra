@@ -158,25 +158,18 @@ def initialize_out_image_and_mask(out_image_arr: np.ndarray, model_image_arr : n
 
 
 def write_points_and_labels_over_image(arr: np.ndarray, image: Image, labels: {} = None) -> Image:
-    st.write("hi6.0")
     point_size = 5
+    label_text = 'Point'
     draw = ImageDraw.Draw(image)
-    st.write("hi6.1")
-    #font = ImageFont.load_default()
-
-    # Define the font size (e.g., 15)
-    #font_size = 15
-
-    # Optionally, you can create a font with specific size
-    #font = ImageFont.truetype(font.path, font_size)
-    st.write("hi6.2")
+    font_size = 16
+    font = ImageFont.truetype("arial.ttf", 15)
     text_width, text_height = 5, 5
     point_color = 'red'
 
-    st.write("hi6")
+
     if labels is not None:
 
-        st.write("hi7")
+
         for id, point in enumerate(arr):
             draw.ellipse(
                 (point[0] - point_size, point[1] - point_size, point[0] + point_size, point[1] + point_size),
@@ -186,14 +179,14 @@ def write_points_and_labels_over_image(arr: np.ndarray, image: Image, labels: {}
 
             draw.text((text_x, text_y), str(labels[id]), fill='red', font=font)
         return image
-    st.write("hi8")
+
     for id, point in enumerate(arr):
         draw.ellipse(
             (point[0] - point_size, point[1] - point_size, point[0] + point_size, point[1] + point_size),
             fill=point_color)
         text_x = point[0] + point_size + 5  # Adjust for spacing
         text_y = point[1] - text_height // 2
-        draw.text((text_x, text_y), str(id), fill='red')
+        draw.text((text_x, text_y), str(id), fill='red', font=font)
 
     return image
 

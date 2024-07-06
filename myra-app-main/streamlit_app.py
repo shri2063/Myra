@@ -397,12 +397,12 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
     with col2:
 
-        st.write("hi1")
+
         if os.path.exists(CLOTH_ADDRESS):
 
             if st.session_state.key_points_tshirt is None:
                 with open(c_pos_json, 'r') as file:
-                    st.write("hi2")
+
                     json_list = json.load(file)
                     kp_arr = np.array(json_list["long"]) * 250
                     st.session_state.key_points_tshirt = kp_arr
@@ -412,16 +412,14 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
             if tshirt_kp_seg != None:
 
-                st.write("hi3")
+
                 write_points_and_labels_over_image( st.session_state.key_points_tshirt[1:][CUTOUT_MAPPING[tshirt_kp_seg]],
                                                    tshirt_image, CUTOUT_MAPPING[tshirt_kp_seg])
             else:
-                st.write("hi4")
-                st.write(st.session_state.key_points_tshirt[1:])
-                st.image(tshirt_image)
+
                 write_points_and_labels_over_image( st.session_state.key_points_tshirt[1:], tshirt_image, None)
 
-            st.write("hi5")
+
             ## Streamlit Image coordinate is a spl library in streamlit that captures point coordinates
             ## of a pixel clicked by mouse over the image
             value = streamlit_image_coordinates(
@@ -839,7 +837,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
 
         back_image = st.selectbox("Back image", BACK_IMAGES, index=0, key="back_image")
-        skin_image = st.selectbox("Front Image", FRONT_IMAGES, index=1, key="front_image")
+        skin_image = st.selectbox("Front Image", FRONT_IMAGES, index=0, key="front_image")
 
         if back_image != "uploaded_image":
             try:
@@ -925,7 +923,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
             else:
                 replant_image_arr[l_mask == 255] = color[0]
 
-            st.write("hi")
+
             if os.path.exists("myra-app-main/predict/images/out_mask.png"):
                 if st.session_state.skin_mask_replant_image_arr is None:
                     mask_replant_image = "myra-app-main/predict/images/out_mask.png"
@@ -1133,16 +1131,16 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
         st.write("Button clicked!")
         st.write(IMAGE_ADDRESS)
         image = cloudinary_upload.uploadImage(IMAGE_ADDRESS, image_str)
-        st.write("Button clicked!")
+
         cloth = cloudinary_upload.uploadImage(CLOTH_ADDRESS, cloth_str)
         ag_mask = cloudinary_upload.uploadImage(AG_MASK_ADDRESS, ag_mask_str)
         skin_mask = cloudinary_upload.uploadImage(SKIN_MASK_ADDRESS, skin_mask_str)
         parse = cloudinary_upload.uploadImage(PARSE_ADDRESS, parse_str)
         parse_ag = cloudinary_upload.uploadImage(PARSE_AG_ADDRESS, parse_ag_str)
-        st.write("Button clicked!")
+
         out_image = cloudinary_upload.uploadImage('myra-app-main/predict/images/out_image.png', out_image_str)
         out_mask = cloudinary_upload.uploadImage('myra-app-main/predict/images/out_mask.png', out_mask_str)
-        st.write("Button clicked!")
+
         output = replicate.run(
             "shrikantbhole/myra:6baecf1816d4ef23da536f7a59cafef418ce04edad10bbac6c07161950e82f1d",
             input={
@@ -1162,9 +1160,14 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
         print(output)
         response = requests.get(output)
-        final_image = np.array(Image.open(BytesIO(response.content)))
+        diffused_image = np.array(Image.open(BytesIO(response.content)))
+        st.image(diffused_image, caption='final Image')
+        Image.fromarray(diffused_image).save('myra-app-main/predict/images/diffused_image.png')
+    else:
+        diffused_image = Image.open("myra-app-main/predict/images/diffused_image.png")
+        st.write("Result of last diffusion")
+        st.image(diffused_image)
 
-        st.image(final_image, caption='final Image')
 
 
 
