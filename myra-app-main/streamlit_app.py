@@ -309,8 +309,8 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
     for image in batch_models:
         with grid_models[col]:
-            st.write(f'myra-app-main/data/image/{image}')
-            st.image('myra-app-main/data/image/00205_00.jpg', caption=f'{image[:8]}')
+            st.write()
+            st.image(f'myra-app-main/data/image/{image}', caption=f'{image[:8]}')
             # print(st.session_state.df_models.at[0,'selected'])
             # st.write(st.session_state.df_models.at[0,'selected'])
             st.checkbox("SELECT", key=f'image_{image}',
