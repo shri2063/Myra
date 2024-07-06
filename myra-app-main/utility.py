@@ -162,13 +162,13 @@ def write_points_and_labels_over_image(arr: np.ndarray, image: Image, labels: {}
     point_size = 5
     draw = ImageDraw.Draw(image)
     st.write("hi6.1")
-    font = ImageFont.load_default()
+    #font = ImageFont.load_default()
 
     # Define the font size (e.g., 15)
-    font_size = 15
+    #font_size = 15
 
     # Optionally, you can create a font with specific size
-    font = ImageFont.truetype(font.path, font_size)
+    #font = ImageFont.truetype(font.path, font_size)
     st.write("hi6.2")
     text_width, text_height = 5, 5
     point_color = 'red'
