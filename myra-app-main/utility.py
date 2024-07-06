@@ -158,6 +158,7 @@ def initialize_out_image_and_mask(out_image_arr: np.ndarray, model_image_arr : n
 
 
 def write_points_and_labels_over_image(arr: np.ndarray, image: Image, labels: {} = None) -> Image:
+    st.write("hi6.0")
     point_size = 5
     label_text = 'Point'
     draw = ImageDraw.Draw(image)
