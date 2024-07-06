@@ -1,9 +1,10 @@
 import os
+from io import BytesIO
 
 import numpy as np
+import requests
 import streamlit as st
-from streamlit_image_select import image_select
-
+import replicate
 ## Set Page framework
 st.set_page_config(page_title="Myra",
                    page_icon=":bridge_at_night:",
@@ -833,7 +834,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
 
         back_image = st.selectbox("Back image", BACK_IMAGES, index=0, key="back_image")
-        skin_image = st.selectbox("Front Image", FRONT_IMAGES, index=2, key="front_image")
+        skin_image = st.selectbox("Front Image", FRONT_IMAGES, index=1, key="front_image")
 
         if back_image != "uploaded_image":
             try:
@@ -1120,20 +1121,25 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
     skin_mask_str = generate_random_string(12)
     parse_str = generate_random_string(12)
     parse_ag_str = generate_random_string(12)
+    out_image_str = generate_random_string(12)
+    out_mask_str = generate_random_string(12)
 
     if button_clicked:
         st.write("Button clicked!")
-
+        st.write(IMAGE_ADDRESS)
         image = cloudinary_upload.uploadImage(IMAGE_ADDRESS, image_str)
+        st.write("Button clicked!")
         cloth = cloudinary_upload.uploadImage(CLOTH_ADDRESS, cloth_str)
         ag_mask = cloudinary_upload.uploadImage(AG_MASK_ADDRESS, ag_mask_str)
         skin_mask = cloudinary_upload.uploadImage(SKIN_MASK_ADDRESS, skin_mask_str)
         parse = cloudinary_upload.uploadImage(PARSE_ADDRESS, parse_str)
         parse_ag = cloudinary_upload.uploadImage(PARSE_AG_ADDRESS, parse_ag_str)
-
-        '''
+        st.write("Button clicked!")
+        out_image = cloudinary_upload.uploadImage('myra-app-main/predict/images/out_image.png', out_image_str)
+        out_mask = cloudinary_upload.uploadImage('myra-app-main/predict/images/out_mask.png', out_mask_str)
+        st.write("Button clicked!")
         output = replicate.run(
-            "shrikantbhole/diffusion3:bc1f239ec073e1cfe92a13bcba6ce4b863e1852592612dbfabdb8039012e1807",
+            "shrikantbhole/myra:6baecf1816d4ef23da536f7a59cafef418ce04edad10bbac6c07161950e82f1d",
             input={
                 "image": image,
                 "cloth": cloth,
@@ -1142,15 +1148,18 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
                 "parse": parse,
                 "parse_ag": parse_ag,
                 "s_pos": get_s_pos_string(s_pos_json),
-                "c_pos": get_c_pos_string(c_pos_json)
+                "c_pos": get_c_pos_string(c_pos_json),
+                "out_image": out_image,
+                "out_mask": out_mask
             }
         )
+        st.write("Button clicked!")
 
         print(output)
         response = requests.get(output)
         final_image = np.array(Image.open(BytesIO(response.content)))
         st.image(final_image, caption='final Image', use_column_width=True)
-        '''
+
 
 
 def main():
