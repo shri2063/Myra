@@ -2,7 +2,7 @@
 # ==============================
 from dotenv import load_dotenv
 
-load_dotenv()
+#load_dotenv()
 
 # Import the Cloudinary libraries
 # ==============================
@@ -16,7 +16,10 @@ import json
 
 # Set configuration parameter: return "https" URLs by setting secure=True
 # ==============================
-config = cloudinary.config(secure=True)
+config = cloudinary.config(cloud_name = "dit4rrqjd",
+    api_key = "798112851553718",
+    api_secret = "6NHEMBHenrU3xs3RlmETrI6mo9M", # Click 'View Credentials' below to copy your API secret
+    secure=True)
 
 # Log the configuration
 # ==============================

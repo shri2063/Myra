@@ -1158,7 +1158,8 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
         print(output)
         response = requests.get(output)
         final_image = np.array(Image.open(BytesIO(response.content)))
-        st.image(final_image, caption='final Image', use_column_width=True)
+
+        st.image(final_image, caption='final Image')
 
 
 
