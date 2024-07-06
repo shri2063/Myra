@@ -309,7 +309,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
 
     for image in batch_models:
         with grid_models[col]:
-            st.image(f'{directory_models}\{image}', caption=f'{image[:8]}')
+            st.image(f'myra-app-main\data\image\{image}', caption=f'{image[:8]}')
             # print(st.session_state.df_models.at[0,'selected'])
             # st.write(st.session_state.df_models.at[0,'selected'])
             st.checkbox("SELECT", key=f'image_{image}',
@@ -336,7 +336,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
     batch_tshirts = files_tshirts[(page - 1) * batch_size: page * batch_size]
     for image in batch_tshirts:
         with grid_tshirts[col]:
-            st.image(f'{directory_tshirts}\{image}', caption=f'{image[:8]}')
+            st.image(f'myra-app-main\data\cloth\{image}', caption=f'{image[:8]}')
             # print(st.session_state.df_models.at[0,'selected'])
             # st.write(st.session_state.df_models.at[0,'selected'])
             st.checkbox("SELECT", key=f'tshirt_{image}',
