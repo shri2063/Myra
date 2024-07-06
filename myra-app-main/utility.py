@@ -193,7 +193,7 @@ def write_points_and_labels_over_image(arr: np.ndarray, image: Image, labels: {}
             fill=point_color)
         text_x = point[0] + point_size + 5  # Adjust for spacing
         text_y = point[1] - text_height // 2
-        draw.text((text_x, text_y), str(id), fill='red', font=font)
+        draw.text((text_x, text_y), str(id), fill='red')
 
     return image
 
