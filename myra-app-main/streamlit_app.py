@@ -1238,7 +1238,7 @@ def configure_sidebar() -> None:
                     st.error(f"Failed to send email: {e}")
 
         with st.expander(":rainbow[**Reach out on Watsapp**]"):
-            st.write(":orange[ Just drop us message on 8800283739 and we will reach out you soon")
+            st.write(":orange[ Just drop us message on 8800283739 and we will reach out you soon]")
 
         with st.expander(":rainbow[A bit about us👋🏾]"):
             st.write(":orange[ Nothing fam !! Just some bunch of tech enthusiasts working persistently to craft  some Myra Magic into fashion Industry  ]")
