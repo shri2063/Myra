@@ -417,7 +417,7 @@ def main_page(AG_MASK_ADDRESS=None, SKIN_MASK_ADDRESS=None) -> None:
             else:
                 write_points_and_labels_over_image( st.session_state.key_points_tshirt[1:], tshirt_image, None)
 
-
+            st.write("hi")
             ## Streamlit Image coordinate is a spl library in streamlit that captures point coordinates
             ## of a pixel clicked by mouse over the image
             value = streamlit_image_coordinates(
