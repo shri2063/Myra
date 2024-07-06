@@ -91,14 +91,18 @@ def home_page():
     st.write(" ")
 
     st.write(
-        "<span style='font-family: Roboto, sans-serif;'> Here's the concept: We begin with an image of a mannequin showcasing the fashion product under ideal "
-        "lighting conditions. This image, along with your prompt detailing the desired attributes of the final model, is fed into our Myra AI system. "
-        "From there, Myra AI swiftly crafts the perfect image of real looking model tailored to your specifications in no time.</span>",
+        "<span style='font-family: Roboto, sans-serif;'> Our concept involves creating"
+        " realistic  and appealing Model images showcasing e-commerce fashion apparels used in  catalogs and creatives "
+        ". After receiving a client's sample t-shirt, "
+        "we pair it with a model selected from our existing creative pool. "
+        "The t-shirt, model along with detailed input from the client specifying "
+        "desired photo attributes, is then processed through our Myra AI system "
+        "</span>",
         unsafe_allow_html=True)
 
     st.write(
-        "<span style='font-family: Roboto,sans-serif'>We have listed below few examples of results obtained from Myra AI .The mannequin home below were retrieved from the internet from different sites. "
-        "pinterest, shutterstock, istockphoto. "
+        "<span style='font-family: Roboto,sans-serif'>From there, Myra AI swiftly crafts the perfect image of real looking model tailored to your specifications in no time"
+        ". We have listed below few examples of results obtained from Myra AI ."
         " Myra AI could "
         "fit AI image within this dress, maintaining the dress outline, tone, and appearance.</span>",
         unsafe_allow_html=True)
@@ -109,7 +113,7 @@ def home_page():
 
 
     #####  MODEL A #######
-
+    st.info("This is the input thsirt and model provided to Myra")
     image1 = Image.open("myra-app-main/home/MA/05700_00.jpg")
     image2 = Image.open("myra-app-main/home/MA/07262_00.jpg")
     image3 = Image.open("myra-app-main/home/MA/00375_F2.png")
@@ -157,7 +161,7 @@ def home_page():
     st.write("")
     st.write("")
     st.write("")
-
+    st.info("Let's try another set of inputs tshirt and model")
     #####  MODEL D #######
     image1 = Image.open("myra-app-main/home/MD/06758_00.jpg")
     image2 = Image.open("myra-app-main/home/MD/07046_00.jpg")
@@ -205,7 +209,7 @@ def home_page():
     st.write("")
     st.write("")
     st.write("")
-
+    st.info("One more set of inputs tshirt and model")
     #####  MODEL F #######
     image1 = Image.open("myra-app-main/home/MF/07025_00.jpg")
     image2 = Image.open("myra-app-main/home/MF/01994_00.jpg")
@@ -228,7 +232,7 @@ def home_page():
     st.write("")
     st.write("")
 
-    st.info("Here you go with the Myra AI!!")
+    st.info("Here you go with the Myra AI again!!")
 
     # Create two columns for displaying home side by side
     col3, col4 = st.columns(2)
