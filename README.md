@@ -1,5 +1,5 @@
 
-Welcome to the Virtual Try-On GitHub repository, an open-source codebase designed to empower developers, researchers, and fashion-tech enthusiasts in creating innovative, AI-driven virtual try-on solutions for the fashion industry.
+Welcome to the Virtual Try-On GitHub repository developed by Flexli Technologies, an open-source codebase designed to empower developers, researchers, and fashion-tech enthusiasts in creating innovative, AI-driven virtual try-on solutions for the fashion industry. Flexli is India's premier warehouse automation company headquatered in Bangalore, India. Please visit our site: https://flexli.in/
 
 This repository provides comprehensive tools, models, and sample code to help fashion retailers and developers integrate virtual try-on technology seamlessly. By leveraging computer vision and deep learning, users can simulate realistic clothing fits on virtual avatars or real images, creating a dynamic and engaging experience for online shoppers.
 
